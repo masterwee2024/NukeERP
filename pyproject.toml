@@ -1,0 +1,72 @@
+[project]
+name = "pyerp"
+version = "0.1.0"
+description = "Full-stack modular ERP system for Malaysian businesses"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "celery>=5.6.3",
+    "django>=6.0.5",
+    "django-cors-headers>=4.9.0",
+    "django-environ>=0.13.0",
+    "django-ninja>=1.6.2",
+    "django-storages>=1.14.6",
+    "djangorestframework>=3.17.1",
+    "djangorestframework-simplejwt>=5.5.1",
+    "psycopg2-binary>=2.9.12",
+    "redis>=8.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+    "django-stubs>=6.0.5",
+    "mypy>=2.1.0",
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-django>=4.12.0",
+    "ruff>=0.15.15",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "pyerp.settings"
+python_files = ["tests.py", "test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--strict-markers --tb=short -q"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyerp", "apps"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+plugins = ["mypy_django_plugin.main"]
+strict = true
