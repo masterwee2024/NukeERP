@@ -28,27 +28,24 @@ services:
     restart: unless-stopped
 
   pgbouncer:
-    image: bitnami/pgbouncer:1.23.1
+    image: edoburu/pgbouncer:latest
     environment:
-      PGBOUNCER_DATABASE: ${DB_NAME:-pyerp}
-      PGBOUNCER_PORT: 6432
-      PGBOUNCER_POOL_MODE: transaction
-      PGBOUNCER_DEFAULT_POOL_SIZE: 20
-      PGBOUNCER_MAX_CLIENT_CONN: 500
-      PGBOUNCER_AUTH_TYPE: md5
-      PGBOUNCER_AUTH_FILE: /bitnami/pgbouncer/conf/userlist.txt
-      POSTGRESQL_HOST: db
-      POSTGRESQL_PORT: 5432
-      POSTGRESQL_USERNAME: ${DB_USER:-pyerp}
-      POSTGRESQL_PASSWORD: ${DB_PASSWORD:-pyerp}
-      POSTGRESQL_DATABASE: ${DB_NAME:-pyerp}
+      DATABASE: pgbouncer
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-pyerp}
+      DB_PASSWORD: ${DB_PASSWORD:-pyerp}
+      POOL_MODE: transaction
+      DEFAULT_POOL_SIZE: 20
+      MAX_CLIENT_CONN: 500
+      AUTH_TYPE: md5
     ports:
-      - "6432:6432"
+      - "6432:5432"
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - ./pgbouncer/userlist.txt:/bitnami/pgbouncer/conf/userlist.txt:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     restart: unless-stopped
 
   django:
@@ -60,7 +57,7 @@ services:
       DJANGO_DEBUG: "True"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,django"
       DB_HOST: pgbouncer
-      DB_PORT: 6432
+      DB_PORT: 5432
       DB_NAME: ${DB_NAME:-pyerp}
       DB_USER: ${DB_USER:-pyerp}
       DB_PASSWORD: ${DB_PASSWORD:-pyerp}
