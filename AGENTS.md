@@ -8,16 +8,16 @@
 
 ```bash
 # Backend (Python)
-poetry install                    # install Python deps
-poetry run python manage.py migrate
-poetry run python manage.py runserver
-poetry run python manage.py seed_menus   # seed dynamic menu tree
-poetry run python manage.py seed_page_configs   # seed page configuration for all modules
-poetry run pytest                  # all backend tests
-poetry run pytest tests/backend/ap/test_supplier_invoice.py -k "test_post"  # single test
-poetry run ruff check .           # lint
-poetry run black .                # format
-poetry run mypy .                 # typecheck
+uv sync                           # install Python deps
+uv run python manage.py migrate
+uv run python manage.py runserver
+uv run python manage.py seed_menus   # seed dynamic menu tree
+uv run python manage.py seed_page_configs   # seed page configuration for all modules
+uv run pytest                      # all backend tests
+uv run pytest tests/backend/ap/test_supplier_invoice.py -k "test_post"  # single test
+uv run ruff check .               # lint
+uv run black .                    # format
+uv run mypy .                     # typecheck
 
 # Frontend (React)
 cd frontend && npm install
@@ -33,6 +33,10 @@ docker compose up -d              # start all services
 docker compose down
 docker compose logs -f django     # backend logs
 docker compose exec django python manage.py shell
+
+# Pre-commit
+uv run pre-commit run --all-files # run all hooks manually
+uv run pre-commit install         # install hooks (done once)
 ```
 
 ## Architecture
@@ -48,7 +52,7 @@ pyERP/
 │   ├── crm/                 # Leads, Opportunities, Customers, Quotation, SO, DO
 │   ├── mrp/                 # BOM, Work Centers, Routings, MRP, Work Orders, QC
 │   ├── hrm/                 # Employees, Attendance, Leave, Payroll, Claims
-│   └── admin/               # System Admin (users, roles, settings)
+│   └── admin_system/        # System Admin (users, roles, settings)
 ├── frontend/                # React + Vite + TypeScript + TailwindCSS
 │   ├── src/
 │   │   ├── components/      # Shared UI (ConfirmDialog, Layout, Sidebar, etc.)
@@ -152,6 +156,126 @@ pyERP/
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `test:`
 - Squash-merge to `main`
 - Branch naming: `feat/description`, `fix/description`, `phase-N/description`
+
+## Development Workflow
+
+### Definition of Done (DoD) — Every Task
+
+A task is **done** when ALL of these are true:
+
+1. **Code complete** — all deliverables in task spec are implemented
+2. **Tests pass** — `uv run pytest` (backend), `npm run test` (frontend), `npx playwright test` (E2E)
+3. **Coverage thresholds met** — backend ≥80%, frontend ≥70%, critical paths ≥90%
+4. **Lint clean** — `uv run ruff check .` and `uv run black --check .` pass
+5. **Type check clean** — `uv run mypy .` and `npx tsc --noEmit` pass
+6. **Pre-commit hooks pass** — `uv run pre-commit run --all-files`
+7. **No regressions** — existing tests still pass
+8. **Responsive** — UI tested at 375px, 768px, 1440px (no horizontal scroll)
+9. **Concurrency control** — if model has `updated_at`, API validates version
+10. **Company filter** — if transaction, filters by `company_id`
+
+### Branch Strategy
+
+```
+main                    ← production-ready, protected
+├── feat/T005-menu      ← feature branches
+├── feat/T010-page-config
+├── fix/invoice-calc
+└── phase-1/financial   ← phase branches for grouped work
+```
+
+- **Branch from**: `main` (always up-to-date)
+- **Merge to**: `main` via squash-merge
+- **Delete after merge**: yes
+- **Never force-push to main**: protected branch
+
+### Pull Request Process
+
+1. **Create branch** from `main`: `git checkout -b feat/T005-menu`
+2. **Commit often** — small, focused commits with conventional messages
+3. **Push and create PR** — use `gh pr create` or GitHub UI
+4. **PR title** = conventional commit format: `feat: implement dynamic menu system (T005)`
+5. **PR description** must include:
+   - What was built (link to task spec)
+   - How to test it
+   - Screenshots (if UI changed)
+   - Checklist: tests, lint, coverage, responsive
+6. **Self-review** before requesting review — read your own diff
+7. **CI must pass** — all hooks, tests, lint, typecheck
+8. **Squash-merge** to main — clean commit history
+
+### Code Review Checklist
+
+When reviewing a PR:
+
+- [ ] **Confirm Dialog** — every destructive action uses `useConfirm()`
+- [ ] **Company filter** — all queries filter by company
+- [ ] **Concurrency** — `select_for_update()` on financial/inventory ops
+- [ ] **No hardcoded IDs** — no `company_id=1` or `user_id=1`
+- [ ] **No `window.confirm()`** — only `useConfirm()` hook
+- [ ] **No horizontal scroll** — responsive design at all viewports
+- [ ] **Services layer** — business logic in `services.py`, not views
+- [ ] **Page Config** — forms use `DynamicFormPage`, not hardcoded fields
+- [ ] **Error handling** — API errors shown to user, not swallowed
+- [ ] **Tests** — new code has tests, coverage meets threshold
+
+### Coverage Thresholds
+
+| Layer | Tool | Minimum | Critical Paths |
+|---|---|---|---|
+| Backend | Pytest | ≥80% | ≥90% (GL posting, payroll, SST) |
+| Frontend | Vitest | ≥70% | ≥80% (forms, hooks) |
+| E2E | Playwright | — | Critical user flows only |
+
+```bash
+# Check coverage
+uv run pytest --cov=apps --cov-report=term-missing
+npm run test -- --coverage
+```
+
+### Hotfix Process
+
+For production-breaking bugs:
+
+1. **Create branch** from `main`: `git checkout -b fix/critical-invoice-calc`
+2. **Fix + test** — minimal change, maximum confidence
+3. **Fast-track review** — one approval required (not two)
+4. **Merge to main** — squash-merge
+5. **Tag release**: `git tag v1.0.1-hotfix`
+6. **Deploy immediately** — no waiting for next release
+
+### Commit Message Format
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types**: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`, `ci`, `perf`
+
+**Examples**:
+```
+feat(financial): implement GL journal entry posting
+fix(hrm): correct EPF calculation for salary ≥ RM5k
+chore: update Docker Compose port mappings
+test(scm): add stock movement concurrency tests
+docs(T005): update task spec with menu API details
+```
+
+### Task Workflow
+
+1. **Read task spec** — `docs/tXXX.md` has everything
+2. **Check dependencies** — task spec lists what must be done first
+3. **Create branch** — `feat/TXXX-description`
+4. **Implement** — follow architecture conventions in this file
+5. **Write tests** — match coverage thresholds
+6. **Run checks** — `uv run pre-commit run --all-files`
+7. **Update task spec** — mark deliverables as done, fill test results table
+8. **Create PR** — link to task spec
+9. **Merge** — squash-merge after CI passes
 
 ## Malaysian Compliance Gotchas
 
