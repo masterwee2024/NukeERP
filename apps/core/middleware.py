@@ -1,8 +1,16 @@
-"""Company middleware — injects company context into every request."""
+"""Middleware — company context and CSRF exemption for API routes."""
 
 from django.utils.deprecation import MiddlewareMixin
 
 from apps.core.models import Company
+
+
+class APICSRFExemptMiddleware(MiddlewareMixin):
+    """Skip CSRF checks for all /api/v1/ routes (handled by JWT)."""
+
+    def process_request(self, request):
+        if request.path.startswith("/api/v1/"):
+            request.csrf_processing_done = True
 
 
 class CompanyMiddleware(MiddlewareMixin):
