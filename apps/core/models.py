@@ -559,12 +559,8 @@ class RolePermission(ConcurrencyModel):
 class UserRole(ConcurrencyModel):
     """Junction table linking users to roles."""
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user_roles"
-    )
-    role = models.ForeignKey(
-        Role, on_delete=models.CASCADE, related_name="user_roles"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_roles")
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="user_roles")
 
     class Meta:
         db_table = "core_user_role"
@@ -622,6 +618,7 @@ class EmailSetting(ConcurrencyModel):
         # Encrypt password before storing
         if self.smtp_password and not self.smtp_password.startswith("enc:"):
             from django.core.signing import TimestampSigner
+
             signer = TimestampSigner()
             self.smtp_password = "enc:" + signer.sign(self.smtp_password)
         super().save(*args, **kwargs)
@@ -632,6 +629,7 @@ class EmailSetting(ConcurrencyModel):
             return ""
         if self.smtp_password.startswith("enc:"):
             from django.core.signing import SignatureExpired, TimestampSigner
+
             try:
                 signer = TimestampSigner()
                 return signer.unsign(self.smtp_password[4:], max_age=None)

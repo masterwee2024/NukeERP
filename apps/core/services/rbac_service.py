@@ -47,7 +47,9 @@ def get_user_roles(user: User) -> list[Role]:
 def get_role_permissions(role: Role) -> list[Permission]:
     """Return all permissions assigned to a role."""
     return list(
-        Permission.objects.filter(role_permissions__role=role).order_by("module", "action")
+        Permission.objects.filter(role_permissions__role=role).order_by(
+            "module", "action"
+        )
     )
 
 

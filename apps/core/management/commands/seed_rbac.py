@@ -35,7 +35,9 @@ class Command(BaseCommand):
                 )
                 if was_created:
                     created += 1
-        self.stdout.write(f"  Permissions: {created} created, {Permission.objects.count()} total")
+        self.stdout.write(
+            f"  Permissions: {created} created, {Permission.objects.count()} total"
+        )
 
     def _create_roles(self):
         roles_data = [
@@ -71,7 +73,9 @@ class Command(BaseCommand):
                     role=finance_manager, permission=perm
                 )
             for action in ["view", "export"]:
-                for perm in Permission.objects.filter(action=action, module__in=["scm", "crm", "hrm"]):
+                for perm in Permission.objects.filter(
+                    action=action, module__in=["scm", "crm", "hrm"]
+                ):
                     RolePermission.objects.get_or_create(
                         role=finance_manager, permission=perm
                     )
@@ -91,7 +95,9 @@ class Command(BaseCommand):
                 for perm in Permission.objects.filter(
                     action=action, module__in=["financial", "crm"]
                 ):
-                    RolePermission.objects.get_or_create(role=scm_manager, permission=perm)
+                    RolePermission.objects.get_or_create(
+                        role=scm_manager, permission=perm
+                    )
 
         sales = Role.objects.filter(name="Sales").first()
         if sales:
@@ -106,16 +112,12 @@ class Command(BaseCommand):
         if hr_manager:
             for perm in Permission.objects.filter(module="hrm"):
                 RolePermission.objects.get_or_create(role=hr_manager, permission=perm)
-            for perm in Permission.objects.filter(
-                module="admin", action__in=["view"]
-            ):
+            for perm in Permission.objects.filter(module="admin", action__in=["view"]):
                 RolePermission.objects.get_or_create(role=hr_manager, permission=perm)
 
         employee = Role.objects.filter(name="Employee").first()
         if employee:
-            for perm in Permission.objects.filter(
-                module="hrm", action__in=["view"]
-            ):
+            for perm in Permission.objects.filter(module="hrm", action__in=["view"]):
                 RolePermission.objects.get_or_create(role=employee, permission=perm)
 
         self.stdout.write("  Role-permission assignments created")

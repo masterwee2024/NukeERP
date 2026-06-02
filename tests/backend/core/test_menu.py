@@ -204,7 +204,10 @@ class TestMenuPermissions:
 @pytest.mark.django_db
 class TestMenuAPI:
     def test_get_menu_tree_authenticated(self, client, admin_user, menu_items):
-        client.force_login(admin_user)
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = AccessToken.for_user(admin_user)
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         response = client.get("/api/v1/core/menus/")
         assert response.status_code == 200
         data = response.json()
@@ -216,7 +219,10 @@ class TestMenuAPI:
         assert response.status_code == 401
 
     def test_create_menu_admin(self, client, admin_user, menu_items):
-        client.force_login(admin_user)
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = AccessToken.for_user(admin_user)
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         response = client.post(
             "/api/v1/core/menus/",
             {
@@ -233,7 +239,10 @@ class TestMenuAPI:
         assert response.json()["name"] == "New Menu"
 
     def test_create_menu_non_admin(self, client, regular_user, menu_items):
-        client.force_login(regular_user)
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = AccessToken.for_user(regular_user)
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         response = client.post(
             "/api/v1/core/menus/",
             {
@@ -245,7 +254,10 @@ class TestMenuAPI:
         assert response.status_code == 403
 
     def test_update_menu_admin(self, client, admin_user, menu_items):
-        client.force_login(admin_user)
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = AccessToken.for_user(admin_user)
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         menu_id = menu_items["root"].id
         response = client.put(
             f"/api/v1/core/menus/{menu_id}/",
@@ -256,7 +268,10 @@ class TestMenuAPI:
         assert response.json()["name"] == "Updated Financial"
 
     def test_delete_menu_admin(self, client, admin_user, menu_items):
-        client.force_login(admin_user)
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = AccessToken.for_user(admin_user)
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         menu_id = menu_items["inactive"].id
         response = client.delete(f"/api/v1/core/menus/{menu_id}/")
         assert response.status_code == 200

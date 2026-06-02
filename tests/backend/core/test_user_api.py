@@ -39,15 +39,21 @@ def test_role(db):
 
 @pytest.fixture
 def auth_client(admin_user):
+    from rest_framework_simplejwt.tokens import AccessToken
+
     client = Client()
-    client.force_login(admin_user)
+    token = AccessToken.for_user(admin_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 
 @pytest.fixture
 def user_client(regular_user):
+    from rest_framework_simplejwt.tokens import AccessToken
+
     client = Client()
-    client.force_login(regular_user)
+    token = AccessToken.for_user(regular_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 
@@ -108,9 +114,7 @@ class TestUserAPI:
 
     def test_filter_by_role(self, auth_client, regular_user, test_role):
         UserRole.objects.create(user=regular_user, role=test_role)
-        response = auth_client.get(
-            f"/api/v1/core/admin/users/?role_id={test_role.id}"
-        )
+        response = auth_client.get(f"/api/v1/core/admin/users/?role_id={test_role.id}")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1

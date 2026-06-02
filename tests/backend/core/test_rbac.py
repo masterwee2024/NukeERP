@@ -56,15 +56,21 @@ def role(db, permissions):
 
 @pytest.fixture
 def auth_client(admin_user):
+    from rest_framework_simplejwt.tokens import AccessToken
+
     client = Client()
-    client.force_login(admin_user)
+    token = AccessToken.for_user(admin_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 
 @pytest.fixture
 def user_client(regular_user):
+    from rest_framework_simplejwt.tokens import AccessToken
+
     client = Client()
-    client.force_login(regular_user)
+    token = AccessToken.for_user(regular_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 
@@ -169,7 +175,9 @@ class TestRBACService:
             )
             is True
         )
-        assert rbac_service.user_has_any_permission(regular_user, ["admin_view"]) is False
+        assert (
+            rbac_service.user_has_any_permission(regular_user, ["admin_view"]) is False
+        )
 
     def test_get_user_roles(self, regular_user, role):
         UserRole.objects.create(user=regular_user, role=role)
@@ -264,9 +272,7 @@ class TestRBACAPI:
         assert response.status_code == 400
 
     def test_get_role_permissions(self, auth_client, role, permissions):
-        response = auth_client.get(
-            f"/api/v1/core/admin/roles/{role.id}/permissions/"
-        )
+        response = auth_client.get(f"/api/v1/core/admin/roles/{role.id}/permissions/")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 6
@@ -284,9 +290,7 @@ class TestRBACAPI:
 
     def test_get_user_roles(self, auth_client, regular_user, role):
         UserRole.objects.create(user=regular_user, role=role)
-        response = auth_client.get(
-            f"/api/v1/core/admin/users/{regular_user.id}/roles/"
-        )
+        response = auth_client.get(f"/api/v1/core/admin/users/{regular_user.id}/roles/")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -303,7 +307,5 @@ class TestRBACAPI:
         assert len(data) == 1
 
     def test_regular_user_cannot_access_admin(self, user_client, regular_user):
-        response = user_client.get(
-            f"/api/v1/core/admin/users/{regular_user.id}/roles/"
-        )
+        response = user_client.get(f"/api/v1/core/admin/users/{regular_user.id}/roles/")
         assert response.status_code == 403

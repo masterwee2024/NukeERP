@@ -14,6 +14,7 @@ def apply_smtp_settings():
         return
 
     from django.conf import settings
+
     settings.EMAIL_HOST = cfg.smtp_host
     settings.EMAIL_PORT = cfg.smtp_port
     settings.EMAIL_HOST_USER = cfg.smtp_username
@@ -42,12 +43,23 @@ def get_email_config() -> dict:
 def update_email_config(data: dict) -> dict:
     """Update SMTP config with provided data."""
     cfg = EmailSetting.load()
-    allowed = ["smtp_host", "smtp_port", "smtp_username", "smtp_use_tls",
-               "smtp_use_ssl", "from_email", "from_name"]
+    allowed = [
+        "smtp_host",
+        "smtp_port",
+        "smtp_username",
+        "smtp_use_tls",
+        "smtp_use_ssl",
+        "from_email",
+        "from_name",
+    ]
     for key in allowed:
         if key in data:
             setattr(cfg, key, data[key])
-    if "smtp_password" in data and data["smtp_password"] and data["smtp_password"] != "••••••":
+    if (
+        "smtp_password" in data
+        and data["smtp_password"]
+        and data["smtp_password"] != "••••••"
+    ):
         cfg.smtp_password = data["smtp_password"]
     cfg.save()
     apply_smtp_settings()

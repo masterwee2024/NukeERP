@@ -30,8 +30,11 @@ def admin_user(db):
 
 @pytest.fixture
 def auth_client(client, test_user):
-    """Client authenticated as test_user."""
-    client.force_login(test_user)
+    """Client authenticated as test_user via JWT."""
+    from rest_framework_simplejwt.tokens import AccessToken
+
+    token = AccessToken.for_user(test_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 

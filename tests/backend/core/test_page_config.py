@@ -172,19 +172,25 @@ class TestPageConfigService:
 
 @pytest.mark.django_db
 class TestPageConfigAPI:
+    def _jwt_auth(self, client, user):
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = AccessToken.for_user(user)
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
     def test_list_configs(self, client, admin_user):
-        client.force_login(admin_user)
+        self._jwt_auth(client, admin_user)
         response = client.get("/api/v1/core/page-configs/")
         assert response.status_code == 200
 
     def test_get_config(self, client, admin_user, sample_config):
-        client.force_login(admin_user)
+        self._jwt_auth(client, admin_user)
         response = client.get(f"/api/v1/core/page-configs/{sample_config.page_key}/")
         assert response.status_code == 200
         assert response.json()["page_key"] == "test-page"
 
     def test_create_config(self, client, admin_user):
-        client.force_login(admin_user)
+        self._jwt_auth(client, admin_user)
         response = client.post(
             "/api/v1/core/page-configs/",
             {
@@ -199,7 +205,7 @@ class TestPageConfigAPI:
         assert PageConfig.objects.filter(page_key="api-test").exists()
 
     def test_delete_config(self, client, admin_user, sample_config):
-        client.force_login(admin_user)
+        self._jwt_auth(client, admin_user)
         response = client.delete(f"/api/v1/core/page-configs/{sample_config.page_key}/")
         assert response.status_code == 204
         assert not PageConfig.objects.filter(page_key="test-page").exists()

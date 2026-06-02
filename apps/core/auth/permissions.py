@@ -14,6 +14,7 @@ def permission_required(codename: str):
         def list_items(request):
             ...
     """
+
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(request, *args, **kwargs):
@@ -22,8 +23,11 @@ def permission_required(codename: str):
                 if user.is_superuser:
                     return view_func(request, *args, **kwargs)
                 from apps.core.services.rbac_service import user_has_permission
+
                 if user_has_permission(user, codename):
                     return view_func(request, *args, **kwargs)
             raise HttpError(403, "You do not have permission to perform this action")
+
         return wrapper
+
     return decorator
