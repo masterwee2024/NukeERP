@@ -279,16 +279,20 @@ docs(T005): update task spec with menu API details
 
 ### Task Workflow
 
-1. **Read task spec** — `docs/tXXX.md` has everything
-2. **Check dependencies** — task spec lists what must be done first
-3. **Create branch** — delegate to git agent: "create branch for TXXX"
-4. **Implement** — follow architecture conventions in this file
-5. **Write tests** — match coverage thresholds
-6. **Run checks** — delegate to test-runner agent: "run tests"
-7. **Self-review** — delegate to code-review agent: "review my changes"
-8. **Update task spec** — mark deliverables as done, fill test results table
-9. **Create PR** — delegate to git agent: "create PR for TXXX"
-10. **Merge** — squash-merge after CI passes
+**MANDATORY: Before starting any task, acknowledge these steps:**
+
+- [ ] 1. **Read task spec** — `docs/tXXX.md` has everything
+- [ ] 2. **Check dependencies** — task spec lists what must be done first
+- [ ] 3. **Create branch** — DELEGATE to git agent: "create branch for TXXX"
+- [ ] 4. **Implement** — follow architecture conventions in this file
+- [ ] 5. **Write tests** — match coverage thresholds
+- [ ] 6. **Run checks** — DELEGATE to test-runner agent: "run tests"
+- [ ] 7. **Self-review** — DELEGATE to code-review agent: "review my changes"
+- [ ] 8. **Update task spec** — mark deliverables as done, fill test results table
+- [ ] 9. **Create PR** — DELEGATE to git agent: "create PR for TXXX"
+- [ ] 10. **Merge** — squash-merge after CI passes
+
+**If you skip step 3 or 6, you are violating project rules.**
 
 ### Test Runner Agent
 
