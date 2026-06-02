@@ -3,6 +3,8 @@ import {
   useContext,
   useState,
   useCallback,
+  useRef,
+  useEffect,
   type ReactNode,
 } from "react";
 
@@ -65,6 +67,48 @@ function ConfirmModal({
 }) {
   const variant = config.variant || "info";
   const styles = variantStyles[variant];
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    const dialog = dialogRef.current;
+    if (dialog) {
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      focusable[0]?.focus();
+    }
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape" && !loading) {
+      onCancel();
+    }
+    if (e.key === "Enter" && !loading) {
+      onConfirm();
+    }
+    if (e.key === "Tab") {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -73,9 +117,11 @@ function ConfirmModal({
         onClick={onCancel}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
+        onKeyDown={handleKeyDown}
         className="relative w-full max-w-[calc(100vw-2rem)] rounded-lg bg-white p-6 shadow-xl"
       >
         <div className="flex items-start gap-4">

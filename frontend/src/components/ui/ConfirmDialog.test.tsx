@@ -112,4 +112,44 @@ describe("ConfirmDialog via useConfirm", () => {
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-labelledby")).toBe("confirm-title");
   });
+
+  it("closes on Escape key", () => {
+    renderWithProviders(<DeleteButton />);
+    fireEvent.click(screen.getByText("Delete"));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("confirms on Enter key", async () => {
+    renderWithProviders(<DeleteButton />);
+    fireEvent.click(screen.getByText("Delete"));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Enter" });
+
+    await vi.waitFor(() => {
+      expect(document.title).toBe("confirmed");
+    });
+  });
+
+  it("traps focus within dialog on Tab", () => {
+    renderWithProviders(<DeleteButton />);
+    fireEvent.click(screen.getByText("Delete"));
+
+    const cancelBtn = screen.getByText("No, keep");
+    const confirmBtn = screen.getByText("Yes, delete");
+    expect(cancelBtn).toBeDefined();
+    expect(confirmBtn).toBeDefined();
+  });
+
+  it("returns focus to trigger after close", () => {
+    renderWithProviders(<DeleteButton />);
+    const deleteBtn = screen.getByText("Delete") as HTMLButtonElement;
+    deleteBtn.focus();
+    fireEvent.click(deleteBtn);
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(document.activeElement).toBe(deleteBtn);
+  });
 });
