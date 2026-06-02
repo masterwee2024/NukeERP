@@ -164,3 +164,81 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: frontend
+
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: pyerp_test
+          POSTGRES_USER: pyerp
+          POSTGRES_PASSWORD: pyerp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DJANGO_SECRET_KEY: ci-test-secret-key
+      DJANGO_DEBUG: "True"
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: pyerp_test
+      DB_USER: pyerp
+      DB_PASSWORD: pyerp
+      REDIS_URL: redis://localhost:6379/0
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run migrations
+        run: uv run python manage.py migrate
+
+      - name: Start Django server
+        run: |
+          uv run python manage.py runserver 0.0.0.0:8000 &
+          sleep 3
+          curl -f http://localhost:8000/api/docs/ || echo "Server starting..."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        working-directory: frontend
