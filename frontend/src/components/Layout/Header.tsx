@@ -4,8 +4,6 @@ import { useCompanies } from "@/hooks/useCompanyContext";
 
 interface HeaderProps {
   onMenuClick: () => void;
-  sidebarCollapsed: boolean;
-  onToggleCollapse: () => void;
 }
 
 const breadcrumbs: Record<string, string> = {
@@ -101,10 +99,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b border-secondary-200 bg-white px-4 md:px-6">
-      {/* Mobile hamburger */}
+      {/* Hamburger menu */}
       <button
         onClick={onMenuClick}
-        className="rounded p-1 text-secondary-500 hover:bg-secondary-100 lg:hidden"
+        className="rounded p-1 text-secondary-500 hover:bg-secondary-100"
         aria-label="Open menu"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

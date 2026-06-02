@@ -82,6 +82,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    environment:
+      VITE_API_PROXY: http://django:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules

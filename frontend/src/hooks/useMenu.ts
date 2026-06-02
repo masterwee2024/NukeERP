@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import api from "@/lib/api";
 import type { MenuItem } from "@/types/menu";
 
 async function fetchMenuTree(): Promise<MenuItem[]> {
-  const { data } = await axios.get("/api/v1/core/menus/");
+  const { data } = await api.get("/core/menus/");
   return data;
 }
 
