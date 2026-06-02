@@ -1,0 +1,56 @@
+# Normalize line endings to LF
+* text=auto eol=lf
+
+# Python
+*.py text diff=python
+
+# JavaScript / TypeScript
+*.js text
+*.ts text
+*.tsx text
+*.jsx text
+
+# Web
+*.html text
+*.css text
+*.scss text
+
+# Config
+*.json text
+*.yml text
+*.yaml text
+*.toml text
+*.ini text
+*.cfg text
+
+# Markdown / Docs
+*.md text
+*.rst text
+
+# Shell scripts
+*.sh text eol=lf
+
+# Batch / PowerShell
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files (never text)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+
+# Lock files
+package-lock.json linguist-generated
+uv.lock linguist-generated
