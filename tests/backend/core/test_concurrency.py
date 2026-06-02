@@ -2,7 +2,8 @@
 
 import pytest
 
-from apps.core.models import ConcurrencyError, Menu
+from apps.core.mixins.models import ConcurrencyError
+from apps.core.models import Menu
 
 
 @pytest.fixture

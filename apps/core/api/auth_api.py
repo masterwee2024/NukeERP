@@ -9,6 +9,7 @@ from ninja.errors import HttpError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.models import User
+from apps.core.services import company_service
 
 router = Router()
 
@@ -41,6 +42,33 @@ class ResetPasswordSchema(Schema):
 # --- Public Endpoints (no auth required) ---
 
 
+def _user_response(user):
+    """Build user dict with company info."""
+    companies = company_service.get_user_companies(user)
+    current = company_service.get_user_default_company(user)
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "is_active": user.is_active,
+        "is_staff": user.is_staff,
+        "full_name": user.full_name,
+        "current_company": (
+            {
+                "id": str(current.id),
+                "name": current.name,
+                "code": current.code,
+            }
+            if current
+            else None
+        ),
+        "companies": [
+            {"id": str(c.id), "name": c.name, "code": c.code} for c in companies
+        ],
+    }
+
+
 @router.post("/login/", auth=None)
 def login(request, payload: LoginSchema):
     """Authenticate user and return JWT tokens."""
@@ -57,15 +85,7 @@ def login(request, payload: LoginSchema):
     return {
         "access": str(refresh.access_token),
         "refresh": str(refresh),
-        "user": {
-            "id": str(user.id),
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "is_active": user.is_active,
-            "is_staff": user.is_staff,
-            "full_name": user.full_name,
-        },
+        "user": _user_response(user),
     }
 
 
@@ -87,15 +107,7 @@ def register(request, payload: RegisterSchema):
     return {
         "access": str(refresh.access_token),
         "refresh": str(refresh),
-        "user": {
-            "id": str(user.id),
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "is_active": user.is_active,
-            "is_staff": user.is_staff,
-            "full_name": user.full_name,
-        },
+        "user": _user_response(user),
     }
 
 
@@ -147,13 +159,4 @@ def logout(request):
 @router.get("/me/")
 def get_me(request):
     """Get current user profile."""
-    user = request.auth
-    return {
-        "id": str(user.id),
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "is_active": user.is_active,
-        "is_staff": user.is_staff,
-        "full_name": user.full_name,
-    }
+    return _user_response(request.auth)

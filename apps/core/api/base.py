@@ -94,7 +94,11 @@ class BaseCRUDRouter(SortMixin, FilterMixin):
 
     def get_queryset(self, request) -> QuerySet:
         """Override to customize queryset (e.g., filter by company)."""
-        return self.model.objects.all()
+        qs = self.model.objects.all()
+        company = getattr(request, "company", None)
+        if company and hasattr(self.model, "company_id"):
+            qs = qs.filter(company_id=company.id)
+        return qs
 
     def list_view(
         self,

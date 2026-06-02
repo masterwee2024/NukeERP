@@ -8,6 +8,12 @@ import {
 } from "react";
 import api from "@/lib/api";
 
+interface CompanyRef {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -16,6 +22,8 @@ interface User {
   is_active: boolean;
   is_staff: boolean;
   full_name: string;
+  current_company: CompanyRef | null;
+  companies: CompanyRef[];
 }
 
 interface AuthContextValue {

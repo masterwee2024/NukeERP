@@ -74,6 +74,42 @@ class Company(ConcurrencyModel):
     tax_number = models.CharField(max_length=50, blank=True, default="")
     is_active = models.BooleanField(default=True)
 
+    # Group hierarchy
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children",
+    )
+    is_group = models.BooleanField(default=False)
+
+    # Address
+    address = models.TextField(blank=True, default="")
+    city = models.CharField(max_length=100, blank=True, default="")
+    state = models.CharField(max_length=100, blank=True, default="")
+    postcode = models.CharField(max_length=20, blank=True, default="")
+    country = models.CharField(max_length=100, blank=True, default="MY")
+
+    # Contact
+    phone = models.CharField(max_length=30, blank=True, default="")
+    email = models.EmailField(blank=True, default="")
+
+    # Branding
+    logo = models.ImageField(upload_to="company_logos/", blank=True)
+
+    # Localization
+    base_currency = models.CharField(max_length=3, blank=True, default="MYR")
+    date_format = models.CharField(max_length=20, blank=True, default="Y-m-d")
+    timezone = models.CharField(max_length=50, blank=True, default="Asia/Kuala_Lumpur")
+
+    # Fiscal year
+    fiscal_year_start = models.DateField(null=True, blank=True)
+    fiscal_year_end = models.DateField(null=True, blank=True)
+
+    # Inter-company & forex GL accounts — add FK to financial.Account
+    # once the Account model exists (T021 / T029c)
+
     class Meta:
         db_table = "core_company"
         verbose_name = "Company"
@@ -92,6 +128,7 @@ class UserCompany(ConcurrencyModel):
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, related_name="company_users"
     )
+    is_default = models.BooleanField(default=False)
 
     class Meta:
         db_table = "core_user_company"
