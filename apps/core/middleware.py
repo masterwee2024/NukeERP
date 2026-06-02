@@ -1,16 +1,19 @@
-"""Middleware — company context and CSRF exemption for API routes."""
+"""Middleware — company context and conditional CSRF."""
 
+from django.middleware.csrf import CsrfViewMiddleware
 from django.utils.deprecation import MiddlewareMixin
 
 from apps.core.models import Company
 
 
-class APICSRFExemptMiddleware(MiddlewareMixin):
-    """Skip CSRF checks for all /api/v1/ routes (handled by JWT)."""
+class ConditionalCSRFMiddleware(CsrfViewMiddleware):
+    """CSRF middleware that skips checks for /api/v1/ routes (handled by JWT)."""
 
-    def process_request(self, request):
+    def process_view(self, request, callback, callback_args, callback_kwargs):
         if request.path.startswith("/api/v1/"):
             request.csrf_processing_done = True
+            return None
+        return super().process_view(request, callback, callback_args, callback_kwargs)
 
 
 class CompanyMiddleware(MiddlewareMixin):
