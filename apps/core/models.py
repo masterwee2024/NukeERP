@@ -466,3 +466,111 @@ class PageConfigField(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.page_config.page_key}.{self.field_name}"
+
+
+# ---------------------------------------------------------------------------
+# RBAC Models — Role-Based Access Control (T014)
+# ---------------------------------------------------------------------------
+
+MODULE_CHOICES = [
+    ("financial", "Financial"),
+    ("scm", "Supply Chain"),
+    ("crm", "CRM"),
+    ("mrp", "MRP"),
+    ("hrm", "HRM"),
+    ("admin", "Administration"),
+]
+
+ACTION_CHOICES = [
+    ("view", "View"),
+    ("create", "Create"),
+    ("update", "Update"),
+    ("delete", "Delete"),
+    ("approve", "Approve"),
+    ("post", "Post"),
+    ("export", "Export"),
+]
+
+
+class Permission(ConcurrencyModel):
+    """Granular permission for module + action."""
+
+    module = models.CharField(max_length=50, choices=MODULE_CHOICES)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    codename = models.SlugField(max_length=100, unique=True)
+    description = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        db_table = "core_permission"
+        unique_together = ("module", "action")
+        verbose_name = "Permission"
+        verbose_name_plural = "Permissions"
+        ordering = ["module", "action"]
+
+    def __str__(self):
+        return self.codename
+
+    def save(self, *args, **kwargs):
+        if not self.codename:
+            self.codename = f"{self.module}_{self.action}"
+        super().save(*args, **kwargs)
+
+
+class Role(ConcurrencyModel):
+    """Role that groups permissions together."""
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.CharField(max_length=255, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    is_system = models.BooleanField(
+        default=False, help_text="System roles cannot be deleted"
+    )
+
+    class Meta:
+        db_table = "core_role"
+        ordering = ["name"]
+        verbose_name = "Role"
+        verbose_name_plural = "Roles"
+
+    def __str__(self):
+        return self.name
+
+
+class RolePermission(ConcurrencyModel):
+    """Junction table linking roles to permissions."""
+
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="role_permissions"
+    )
+    permission = models.ForeignKey(
+        Permission, on_delete=models.CASCADE, related_name="role_permissions"
+    )
+
+    class Meta:
+        db_table = "core_role_permission"
+        unique_together = ("role", "permission")
+        verbose_name = "Role Permission"
+        verbose_name_plural = "Role Permissions"
+
+    def __str__(self):
+        return f"{self.role.name} → {self.permission.codename}"
+
+
+class UserRole(ConcurrencyModel):
+    """Junction table linking users to roles."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_roles"
+    )
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="user_roles"
+    )
+
+    class Meta:
+        db_table = "core_user_role"
+        unique_together = ("user", "role")
+        verbose_name = "User Role"
+        verbose_name_plural = "User Roles"
+
+    def __str__(self):
+        return f"{self.user.email} → {self.role.name}"

@@ -14,6 +14,11 @@ interface CompanyRef {
   code: string;
 }
 
+interface RoleRef {
+  id: string;
+  name: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -24,6 +29,8 @@ interface User {
   full_name: string;
   current_company: CompanyRef | null;
   companies: CompanyRef[];
+  roles: RoleRef[];
+  permissions: string[];
 }
 
 interface AuthContextValue {

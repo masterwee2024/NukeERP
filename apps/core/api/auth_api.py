@@ -9,7 +9,7 @@ from ninja.errors import HttpError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.models import User
-from apps.core.services import company_service
+from apps.core.services import company_service, rbac_service
 
 router = Router()
 
@@ -43,9 +43,11 @@ class ResetPasswordSchema(Schema):
 
 
 def _user_response(user):
-    """Build user dict with company info."""
+    """Build user dict with company and permission info."""
     companies = company_service.get_user_companies(user)
     current = company_service.get_user_default_company(user)
+    roles = rbac_service.get_user_roles(user)
+    permissions = rbac_service.get_user_permissions(user) if not user.is_superuser else []
     return {
         "id": str(user.id),
         "email": user.email,
@@ -54,18 +56,17 @@ def _user_response(user):
         "is_active": user.is_active,
         "is_staff": user.is_staff,
         "full_name": user.full_name,
-        "current_company": (
-            {
-                "id": str(current.id),
-                "name": current.name,
-                "code": current.code,
-            }
-            if current
-            else None
-        ),
+        "current_company": {
+            "id": str(current.id),
+            "name": current.name,
+            "code": current.code,
+        } if current else None,
         "companies": [
-            {"id": str(c.id), "name": c.name, "code": c.code} for c in companies
+            {"id": str(c.id), "name": c.name, "code": c.code}
+            for c in companies
         ],
+        "roles": [{"id": str(r.id), "name": r.name} for r in roles],
+        "permissions": permissions,
     }
 
 
