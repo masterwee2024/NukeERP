@@ -10,16 +10,42 @@ from django.contrib.auth.models import (
 from django.db import models
 
 
+class ConcurrencyError(Exception):
+    """Raised when optimistic locking detects a conflict."""
+
+    pass
+
+
 class ConcurrencyModel(models.Model):
-    """Base model with concurrency control fields."""
+    """Base model with concurrency control fields.
+
+    Every model MUST inherit from this. Provides:
+    - id: UUID primary key
+    - created_at: auto-set on creation
+    - updated_at: auto-updated on save
+    - version: optimistic locking field (auto-increments on save)
+    """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
         abstract = True
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                original = self.__class__.objects.get(pk=self.pk)
+                if original.version != self.version:
+                    raise ConcurrencyError(
+                        "Record was modified by another user. Please reload and try again."
+                    )
+                self.version += 1
+            except self.__class__.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
 
 
 class UserManager(BaseUserManager):

@@ -14,7 +14,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor — handle 401 with silent refresh
+// Response interceptor — handle 401 (token refresh) and 409 (concurrency conflict)
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -37,6 +37,21 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 409 Conflict — record was modified by another user
+    if (error.response?.status === 409) {
+      const conflictData = error.response.data;
+      // Dispatch custom event for UI to handle
+      window.dispatchEvent(
+        new CustomEvent("concurrency-conflict", {
+          detail: {
+            message: conflictData?.detail || "Record was modified by another user",
+            data: conflictData,
+          },
+        })
+      );
+    }
+
+    // Handle 401 — silent token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -59,7 +74,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post("/api/v1/auth/token/refresh/", {
+        const { data } = await axios.post("/api/v1/core/auth/token/refresh/", {
           refresh: refreshToken,
         });
         localStorage.setItem("access_token", data.access);

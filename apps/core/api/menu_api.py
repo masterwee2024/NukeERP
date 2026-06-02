@@ -3,6 +3,7 @@
 from uuid import UUID
 
 from django.db import transaction
+from django.utils.dateparse import parse_datetime
 from ninja import Field, ModelSchema, Router, Schema
 from ninja.errors import HttpError
 
@@ -36,6 +37,7 @@ class MenuUpdateSchema(Schema):
     permission_codename: str | None = None
     is_active: bool | None = None
     module: str | None = None
+    updated_at: str | None = None
 
 
 class MenuOutSchema(ModelSchema):
@@ -175,6 +177,15 @@ def update_menu(request, menu_id: UUID, payload: MenuUpdateSchema):
     except Menu.DoesNotExist:
         raise HttpError(404, "Menu not found") from None
 
+    # Optimistic locking: validate updated_at matches
+    if payload.updated_at:
+        client_dt = parse_datetime(payload.updated_at)
+        if client_dt and menu.updated_at != client_dt:
+            raise HttpError(
+                409,
+                "Record was modified by another user. Please reload and try again.",
+            )
+
     update_data = payload.model_dump(exclude_unset=True)
 
     if "parent_id" in update_data:
@@ -191,7 +202,8 @@ def update_menu(request, menu_id: UUID, payload: MenuUpdateSchema):
         del update_data["parent_id"]
 
     for field, value in update_data.items():
-        setattr(menu, field, value)
+        if field != "updated_at":
+            setattr(menu, field, value)
 
     menu.save()
     return menu
