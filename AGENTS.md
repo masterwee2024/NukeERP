@@ -265,6 +265,18 @@ test(scm): add stock movement concurrency tests
 docs(T005): update task spec with menu API details
 ```
 
+### Agent Delegation Rules
+
+**Sub-agents are assistants, not replacements for judgment.**
+
+1. **Review output** — Always read sub-agent results before accepting them
+2. **Verify critical items** — Never blindly trust "all checks passed" on git, financial logic, or security
+3. **Investigate errors** — If a sub-agent reports failure, understand why before retrying or fixing
+4. **Context matters** — Sub-agents don't see conversation history; provide clear task summaries when delegating
+5. **Use as checklist** — Code review agent is pattern-based, not a replacement for human logic review
+6. **Git caution** — Verify `git status` and `git diff` before pushing; fix malformed commits immediately
+7. **Escalate doubts** — If uncertain about a sub-agent's result, run the check manually or ask the user
+
 ### Task Workflow
 
 1. **Read task spec** — `docs/tXXX.md` has everything
