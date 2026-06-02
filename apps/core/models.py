@@ -642,7 +642,7 @@ class EmailSetting(ConcurrencyModel):
     @classmethod
     def load(cls) -> "EmailSetting":
         """Get or create the singleton email config."""
-        obj = cls.objects.first()
+        obj = cls.objects.order_by("-updated_at").first()
         if not obj:
             obj = cls.objects.create()
         return obj

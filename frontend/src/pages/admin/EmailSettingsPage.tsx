@@ -30,13 +30,15 @@ export default function EmailSettingsPage() {
   const [testEmail, setTestEmail] = useState("");
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
-  const { data: config } = useQuery({
+  const { data: config, error: configError, isLoading: configLoading } = useQuery({
     queryKey: ["email-settings"],
     queryFn: async (): Promise<EmailConfig> => {
       const { data } = await api.get("/core/admin/settings/email/");
       return data;
     },
+    retry: 2,
   });
 
   useEffect(() => {
@@ -45,12 +47,17 @@ export default function EmailSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<EmailConfig>) => {
-      await api.put("/core/admin/settings/email/", data);
+      const res = await api.put("/core/admin/settings/email/", data);
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-settings"] });
       setSaved(true);
+      setSaveError("");
       setTimeout(() => setSaved(false), 3000);
+    },
+    onError: (err: { response?: { data?: { detail?: string } } }) => {
+      setSaveError(err.response?.data?.detail || "Failed to save settings");
     },
   });
 
@@ -87,8 +94,19 @@ export default function EmailSettingsPage() {
     <div className="mx-auto max-w-2xl p-4 md:p-6">
       <h1 className="mb-6 text-xl font-bold text-secondary-900 md:text-2xl">Email Settings</h1>
 
+      {configLoading && (
+        <div className="mb-4 rounded-lg bg-secondary-50 p-3 text-sm text-secondary-600">Loading settings...</div>
+      )}
+      {configError && (
+        <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger-700">
+          Failed to load settings: {(configError as any)?.response?.data?.detail || "Check server logs"}
+        </div>
+      )}
       {saved && (
         <div className="mb-4 rounded-lg bg-success-50 p-3 text-sm text-success-700">Settings saved</div>
+      )}
+      {saveError && (
+        <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger-700">{saveError}</div>
       )}
 
       <div className="space-y-4 rounded-lg border border-secondary-200 bg-white p-6">
