@@ -1,9 +1,16 @@
 """Middleware — company context and CSRF exemption for API routes."""
 
 from django.utils.deprecation import MiddlewareMixin
-from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.models import Company
+
+
+class APICSRFExemptMiddleware(MiddlewareMixin):
+    """Sets csrf_processing_done for /api/v1/ so Django's CsrfViewMiddleware skips checks."""
+
+    def process_request(self, request):
+        if request.path.startswith("/api/v1/"):
+            request.csrf_processing_done = True
 
 
 class CompanyMiddleware(MiddlewareMixin):
