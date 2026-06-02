@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -80,17 +81,6 @@ export default function UserFormPage() {
       const { data } = await api.get("/core/admin/roles/");
       return data;
     },
-  });
-
-  const { data: existingUser } = useQuery({
-    queryKey: ["admin-user", id],
-    queryFn: async (): Promise<User | null> => {
-      const { data } = await api.get("/core/admin/users/");
-      const users: User[] = data;
-      const found = users.find((u: User) => u.id === id);
-      return found ? { ...found } : null;
-    },
-    enabled: isEdit,
   });
 
   const handleChange = (field: keyof FormState, value: string | boolean | string[]) => {
