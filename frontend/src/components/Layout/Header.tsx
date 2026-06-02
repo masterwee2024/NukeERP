@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useCompanies, useCurrentCompany, useCompanyMutations } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
@@ -94,11 +93,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const crumbs = getBreadcrumbs(location.pathname);
-  const { data: companies } = useCompanies();
-  const { company: currentCompany } = useCurrentCompany();
   const { logout } = useAuth();
-  const { switchCompany } = useCompanyMutations();
-  const [companyOpen, setCompanyOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
   return (
@@ -150,65 +145,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           ))}
         </ol>
       </nav>
-
-      {/* Company Switcher */}
-      <div className="relative hidden md:block">
-        {(companies?.length ?? 0) > 1 ? (
-          <>
-            <button
-              onClick={() => setCompanyOpen(!companyOpen)}
-              className="flex items-center gap-1.5 rounded-md border border-secondary-200 px-2.5 py-1.5 text-xs font-medium text-secondary-600 hover:bg-secondary-50"
-              aria-label="Switch company"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span>{currentCompany?.name || "Select Company"}</span>
-              <svg className={`h-3 w-3 transition-transform ${companyOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {companyOpen && companies && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setCompanyOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-md border border-secondary-200 bg-white py-1 shadow-lg">
-                  {companies.length === 0 && (
-                    <p className="px-3 py-2 text-xs text-secondary-400">No companies</p>
-                  )}
-                  {companies.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => {
-                        localStorage.setItem("current_company_id", c.id);
-                        switchCompany.mutate(c.id, {
-                          onSettled: () => {
-                            setCompanyOpen(false);
-                            window.location.reload();
-                          },
-                        });
-                      }}
-                      className={`flex w-full items-center px-3 py-2 text-left text-sm hover:bg-secondary-50 ${
-                        c.id === currentCompany?.id
-                          ? "bg-primary-50 font-medium text-primary-700"
-                          : "text-secondary-700"
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <span className="flex items-center gap-1.5 rounded-md border border-secondary-200 px-2.5 py-1.5 text-xs font-medium text-secondary-600">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            {currentCompany?.name || "Select Company"}
-          </span>
-        )}
-      </div>
 
       {/* Right side */}
       <div className="flex items-center gap-3">
