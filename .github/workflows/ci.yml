@@ -122,6 +122,9 @@ jobs:
       - name: Run migrations
         run: uv run python manage.py migrate
 
+      - name: Django system check
+        run: uv run python manage.py check
+
       - name: Run tests
         run: uv run pytest --tb=short -q
 
