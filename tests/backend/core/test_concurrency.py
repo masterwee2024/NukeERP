@@ -124,22 +124,18 @@ class TestAPIConcurrency:
         assert response.status_code == 409
 
     def test_409_response_contains_conflict_flag(self, auth_client, menu_item):
-        """409 response should contain conflict flag."""
-        response = auth_client.put(
+        """409 response should contain conflict flag and detail message."""
+        # First update succeeds
+        auth_client.put(
             f"/api/v1/core/menus/{menu_item.id}/",
             {
-                "name": "Update",
+                "name": "Update 2",
                 "updated_at": menu_item.updated_at.isoformat(),
             },
             content_type="application/json",
         )
-        # First update succeeds, then second with stale version
-        auth_client.put(
-            f"/api/v1/core/menus/{menu_item.id}/",
-            {"name": "Update 2"},
-            content_type="application/json",
-        )
 
+        # Second update with stale updated_at — should get 409
         response = auth_client.put(
             f"/api/v1/core/menus/{menu_item.id}/",
             {
@@ -149,3 +145,6 @@ class TestAPIConcurrency:
             content_type="application/json",
         )
         assert response.status_code == 409
+        data = response.json()
+        assert "detail" in data
+        assert "modified by another user" in data["detail"].lower()

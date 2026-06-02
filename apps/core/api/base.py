@@ -3,12 +3,12 @@
 from typing import Any
 from uuid import UUID
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import QuerySet
 from ninja import Field, Router, Schema
 from ninja.errors import HttpError
 
-from apps.core.models import ConcurrencyError
+from apps.core.mixins.models import ConcurrencyError
 
 
 class PaginationSchema(Schema):
@@ -131,33 +131,41 @@ class BaseCRUDRouter(SortMixin, FilterMixin):
         except self.model.DoesNotExist:
             raise HttpError(404, "Not found") from None
 
-    def update_view(self, request, id: UUID, data):
-        """Update item with optimistic locking."""
-        try:
-            item = self.model.objects.get(id=id)
-        except self.model.DoesNotExist:
-            raise HttpError(404, "Not found") from None
+    def update_view(self, request, id: UUID, data, use_lock: bool = False):
+        """Update item with optimistic locking.
 
-        # Validate updated_at if provided (optimistic lock)
-        if hasattr(data, "updated_at") and data.updated_at:
-            if item.updated_at != data.updated_at:
-                raise HttpError(
-                    409,
-                    "Record was modified by another user. Please reload and try again.",
-                )
+        Set use_lock=True for financial/inventory operations
+        to enable pessimistic locking (select_for_update).
+        """
+        with transaction.atomic():
+            try:
+                queryset = self.model.objects
+                if use_lock:
+                    queryset = queryset.select_for_update()
+                item = queryset.get(id=id)
+            except self.model.DoesNotExist:
+                raise HttpError(404, "Not found") from None
 
-        # Apply updates
-        update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            if field != "updated_at":
-                setattr(item, field, value)
+            # Validate updated_at if provided (optimistic lock)
+            if hasattr(data, "updated_at") and data.updated_at:
+                if item.updated_at != data.updated_at:
+                    raise HttpError(
+                        409,
+                        "Record was modified by another user. Please reload and try again.",
+                    )
 
-        try:
-            item.save()  # version auto-increments via ConcurrencyModel
-        except ConcurrencyError as e:
-            raise HttpError(409, str(e)) from e
+            # Apply updates
+            update_data = data.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                if field != "updated_at":
+                    setattr(item, field, value)
 
-        return item
+            try:
+                item.save()  # version auto-increments via ConcurrencyModel
+            except ConcurrencyError as e:
+                raise HttpError(409, str(e)) from e
+
+            return item
 
     def delete_view(self, request, id: UUID):
         """Delete item."""

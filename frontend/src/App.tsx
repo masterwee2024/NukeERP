@@ -15,6 +15,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Listen for concurrency conflicts — invalidate data and notify user
+if (typeof window !== "undefined") {
+  window.addEventListener("concurrency-conflict", ((event: CustomEvent) => {
+    const { message } = event.detail;
+    queryClient.invalidateQueries();
+    console.warn("Concurrency conflict:", message);
+  }) as EventListener);
+}
+
 const LoginPage = lazy(() => import("./pages/Login"));
 const RegisterPage = lazy(() => import("./pages/Register"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));

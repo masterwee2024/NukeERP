@@ -5,11 +5,15 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor — inject access token
+// Request interceptor — inject access token + company context
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const companyId = localStorage.getItem("current_company_id");
+  if (companyId) {
+    config.headers["X-Company-Id"] = companyId;
   }
   return config;
 });

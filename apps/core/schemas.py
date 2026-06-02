@@ -1,7 +1,5 @@
 """Error response schemas for consistent API error format."""
 
-from typing import Any
-
 from ninja import Schema
 
 
@@ -22,4 +20,4 @@ class ConflictResponseSchema(Schema):
 
     detail: str
     conflict: bool = True
-    updated_at: Any = None
+    updated_at: str | None = None
