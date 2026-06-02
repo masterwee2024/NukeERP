@@ -230,3 +230,240 @@ class MenuRole(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.menu.name} → {self.role.name}"
+
+
+class PageConfig(ConcurrencyModel):
+    """Database-driven page configuration."""
+
+    PAGE_TYPES = [
+        ("form", "Form"),
+        ("list", "List"),
+        ("detail", "Detail"),
+        ("dashboard", "Dashboard"),
+    ]
+
+    LAYOUTS = [
+        ("single", "Single Column"),
+        ("two_column", "Two Column"),
+        ("tabs", "Tabs"),
+        ("wizard", "Wizard"),
+    ]
+
+    page_key = models.SlugField(max_length=100, unique=True)
+    page_title = models.CharField(max_length=200)
+    page_type = models.CharField(max_length=20, choices=PAGE_TYPES)
+    module = models.CharField(
+        max_length=50,
+        help_text="Module grouping (financial, scm, crm, mrp, hrm, admin)",
+    )
+    entity_model = models.CharField(
+        max_length=100, blank=True, default="", help_text="Django model name"
+    )
+    api_endpoint = models.CharField(max_length=200, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    # Layout settings
+    layout = models.CharField(max_length=20, choices=LAYOUTS, default="single")
+    desktop_layout = models.CharField(max_length=20, choices=LAYOUTS, default="single")
+    mobile_layout = models.CharField(max_length=20, choices=LAYOUTS, default="single")
+    list_mobile_view = models.CharField(
+        max_length=10,
+        choices=[("table", "Table"), ("card", "Card")],
+        default="card",
+    )
+    mobile_group_by = models.CharField(
+        max_length=100, blank=True, default="", help_text="Field name for card grouping"
+    )
+
+    # Actions (JSON)
+    actions = models.JSONField(default=list, blank=True)
+    breadcrumbs = models.JSONField(default=list, blank=True)
+
+    # Pagination
+    page_size = models.PositiveIntegerField(default=25)
+    sort_default = models.CharField(max_length=100, blank=True, default="")
+    sort_direction = models.CharField(
+        max_length=4,
+        choices=[("asc", "Ascending"), ("desc", "Descending")],
+        default="asc",
+    )
+
+    class Meta:
+        db_table = "core_page_config"
+        ordering = ["module", "page_key"]
+        verbose_name = "Page Config"
+        verbose_name_plural = "Page Configs"
+
+    def __str__(self):
+        return f"{self.page_key} ({self.page_type})"
+
+
+class PageConfigField(ConcurrencyModel):
+    """Field-level configuration for a page."""
+
+    FIELD_TYPES = [
+        ("text", "Text"),
+        ("textarea", "Textarea"),
+        ("number", "Number"),
+        ("decimal", "Decimal"),
+        ("email", "Email"),
+        ("password", "Password"),
+        ("date", "Date"),
+        ("datetime", "DateTime"),
+        ("time", "Time"),
+        ("select", "Select"),
+        ("multi_select", "Multi Select"),
+        ("checkbox", "Checkbox"),
+        ("radio", "Radio"),
+        ("file", "File"),
+        ("image", "Image"),
+        ("hidden", "Hidden"),
+        ("heading", "Heading"),
+        ("divider", "Divider"),
+        ("json", "JSON"),
+        ("parent_child", "Parent-Child Table"),
+    ]
+
+    page_config = models.ForeignKey(
+        PageConfig, on_delete=models.CASCADE, related_name="fields"
+    )
+    field_name = models.CharField(max_length=100)
+    label = models.CharField(max_length=200)
+    placeholder = models.CharField(max_length=200, blank=True, default="")
+    help_text = models.CharField(max_length=500, blank=True, default="")
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
+    data_type = models.CharField(
+        max_length=20, blank=True, default="", help_text="String, Integer, etc."
+    )
+    required = models.BooleanField(default=False)
+    readonly = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+    disabled = models.BooleanField(default=False)
+    default_value = models.CharField(max_length=500, blank=True, default="")
+    sort_order = models.PositiveIntegerField(default=0)
+
+    # Grouping
+    group_name = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="header, details, totals, notes",
+    )
+
+    # Layout
+    col_span = models.PositiveIntegerField(default=1, help_text="1-12 column span")
+    width = models.CharField(
+        max_length=10,
+        choices=[
+            ("full", "Full"),
+            ("half", "Half"),
+            ("third", "Third"),
+            ("quarter", "Quarter"),
+        ],
+        default="full",
+    )
+
+    # Responsive settings
+    show_on_desktop = models.BooleanField(default=True)
+    show_on_mobile = models.BooleanField(default=True)
+    desktop_col_span = models.PositiveIntegerField(default=1)
+    mobile_col_span = models.PositiveIntegerField(default=12)
+    mobile_render_as = models.CharField(
+        max_length=10,
+        choices=[
+            ("text", "Text"),
+            ("badge", "Badge"),
+            ("card", "Card"),
+            ("compact", "Compact"),
+        ],
+        default="text",
+    )
+
+    # Validation
+    min_length = models.PositiveIntegerField(null=True, blank=True)
+    max_length = models.PositiveIntegerField(null=True, blank=True)
+    min_value = models.DecimalField(
+        max_digits=20, decimal_places=6, null=True, blank=True
+    )
+    max_value = models.DecimalField(
+        max_digits=20, decimal_places=6, null=True, blank=True
+    )
+    pattern = models.CharField(max_length=200, blank=True, default="")
+    custom_validator = models.CharField(max_length=200, blank=True, default="")
+
+    # Options
+    options_source = models.CharField(
+        max_length=10,
+        choices=[
+            ("static", "Static"),
+            ("api", "API"),
+            ("enum", "Enum"),
+            ("model", "Model"),
+        ],
+        blank=True,
+        default="",
+    )
+    options = models.JSONField(default=list, blank=True)
+    options_api = models.CharField(max_length=200, blank=True, default="")
+    options_label_field = models.CharField(max_length=100, blank=True, default="")
+    options_value_field = models.CharField(max_length=100, blank=True, default="")
+    option_group_by = models.CharField(max_length=100, blank=True, default="")
+
+    # Related entity
+    related_entity = models.CharField(max_length=100, blank=True, default="")
+    related_display = models.CharField(max_length=100, blank=True, default="")
+    related_search = models.JSONField(default=dict, blank=True)
+    related_fields = models.JSONField(default=list, blank=True)
+
+    # Conditional display
+    show_when = models.JSONField(default=dict, blank=True)
+    depends_on = models.JSONField(default=dict, blank=True)
+
+    # Column settings (for list pages)
+    is_column = models.BooleanField(default=False)
+    column_order = models.PositiveIntegerField(default=0)
+    column_width = models.CharField(max_length=10, blank=True, default="")
+    column_align = models.CharField(
+        max_length=10,
+        choices=[("left", "Left"), ("center", "Center"), ("right", "Right")],
+        default="left",
+    )
+    sortable = models.BooleanField(default=False)
+    filterable = models.BooleanField(default=False)
+    searchable = models.BooleanField(default=False)
+    aggregate = models.CharField(max_length=20, blank=True, default="")
+
+    # Rendering
+    render_as = models.CharField(max_length=20, blank=True, default="")
+
+    # Parent-child (inline tables)
+    parent_field = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="child_fields",
+    )
+    line_entity = models.CharField(max_length=100, blank=True, default="")
+    line_fields = models.JSONField(default=list, blank=True)
+
+    # Permissions
+    permission_read = models.CharField(max_length=100, blank=True, default="")
+    permission_write = models.CharField(max_length=100, blank=True, default="")
+
+    # Display
+    icon = models.CharField(max_length=50, blank=True, default="")
+    prefix = models.CharField(max_length=20, blank=True, default="")
+    suffix = models.CharField(max_length=20, blank=True, default="")
+    format = models.CharField(max_length=50, blank=True, default="")
+    badge_color = models.JSONField(default=dict, blank=True)
+    css_class = models.CharField(max_length=200, blank=True, default="")
+
+    class Meta:
+        db_table = "core_page_config_field"
+        ordering = ["sort_order", "field_name"]
+        verbose_name = "Page Config Field"
+        verbose_name_plural = "Page Config Fields"
+
+    def __str__(self):
+        return f"{self.page_config.page_key}.{self.field_name}"
