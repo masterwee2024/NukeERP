@@ -24,7 +24,7 @@ interface Role {
 export default function UserListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const confirm = useConfirm();
+  const { confirm } = useConfirm();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -72,7 +72,7 @@ export default function UserListPage() {
       title: "Deactivate User",
       message: `Are you sure you want to deactivate ${user.email}? They will not be able to log in.`,
       variant: "danger",
-      confirmLabel: "Deactivate",
+      confirmText: "Deactivate",
     });
     if (confirmed) {
       deactivateMutation.mutate(user.id);
@@ -84,7 +84,7 @@ export default function UserListPage() {
       title: "Reactivate User",
       message: `Are you sure you want to reactivate ${user.email}?`,
       variant: "warning",
-      confirmLabel: "Reactivate",
+      confirmText: "Reactivate",
     });
     if (confirmed) {
       reactivateMutation.mutate(user.id);

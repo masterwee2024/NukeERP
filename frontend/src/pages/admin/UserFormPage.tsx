@@ -35,7 +35,7 @@ export default function UserFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const confirm = useConfirm();
+  const { confirm } = useConfirm();
   const isEdit = Boolean(id);
 
   const [error, setError] = useState("");
@@ -132,7 +132,7 @@ export default function UserFormPage() {
         title: "Create User",
         message: `Create user ${form.email}?`,
         variant: "info",
-        confirmLabel: "Create",
+        confirmText: "Create",
       });
       if (!confirmed) return;
       createMutation.mutate({
@@ -149,7 +149,7 @@ export default function UserFormPage() {
         title: "Update User",
         message: `Save changes to ${form.email}?`,
         variant: "info",
-        confirmLabel: "Save",
+        confirmText: "Save",
       });
       if (!confirmed) return;
       updateMutation.mutate({
@@ -169,7 +169,7 @@ export default function UserFormPage() {
       title: "Reset Password",
       message: `Reset password for ${form.email}?`,
       variant: "warning",
-      confirmLabel: "Reset",
+      confirmText: "Reset",
     });
     if (confirmed) {
       resetPasswordMutation.mutate(newPassword);
