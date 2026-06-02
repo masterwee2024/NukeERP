@@ -254,3 +254,17 @@ MULTI_COMPANY_ENABLED = True
 
 DEFAULT_CURRENCY = "MYR"
 CURRENCY_SYMBOL = "RM"
+
+# ---------------------------------------------------------------------------
+# Custom User Model
+# ---------------------------------------------------------------------------
+
+AUTH_USER_MODEL = "core.User"
+
+# ---------------------------------------------------------------------------
+# Authentication backends
+# ---------------------------------------------------------------------------
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+]

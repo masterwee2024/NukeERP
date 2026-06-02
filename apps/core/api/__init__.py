@@ -2,7 +2,9 @@
 
 from ninja import Router
 
+from apps.core.api.auth_api import router as auth_router
 from apps.core.api.menu_api import router as menu_router
 
 router = Router()
 router.add_router("/menus/", menu_router, tags=["menus"])
+router.add_router("/auth/", auth_router, tags=["auth"])

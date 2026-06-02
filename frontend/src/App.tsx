@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
+import { AuthProvider } from "./contexts/AuthContext";
 import { ConfirmProvider } from "./components/ui/ConfirmDialog";
 import AppLayout from "./components/Layout/AppLayout";
+import ProtectedRoute from "./components/Auth/ProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,8 +15,11 @@ const queryClient = new QueryClient({
   },
 });
 
+const LoginPage = lazy(() => import("./pages/Login"));
+const RegisterPage = lazy(() => import("./pages/Register"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function LoadingSpinner() {
@@ -28,29 +33,41 @@ function LoadingSpinner() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfirmProvider>
-        <BrowserRouter>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/app" element={<AppLayout />}>
-                <Route index element={<Navigate to="/app/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="financial/*" element={<Dashboard />} />
-                <Route path="assets/*" element={<Dashboard />} />
-                <Route path="treasury/*" element={<Dashboard />} />
-                <Route path="scm/*" element={<Dashboard />} />
-                <Route path="crm/*" element={<Dashboard />} />
-                <Route path="mrp/*" element={<Dashboard />} />
-                <Route path="hrm/*" element={<Dashboard />} />
-                <Route path="admin/*" element={<Dashboard />} />
-              </Route>
-              <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </ConfirmProvider>
+      <AuthProvider>
+        <ConfirmProvider>
+          <BrowserRouter>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+                {/* Protected routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/app" element={<AppLayout />}>
+                    <Route index element={<Navigate to="/app/dashboard" replace />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="financial/*" element={<Dashboard />} />
+                    <Route path="assets/*" element={<Dashboard />} />
+                    <Route path="treasury/*" element={<Dashboard />} />
+                    <Route path="scm/*" element={<Dashboard />} />
+                    <Route path="crm/*" element={<Dashboard />} />
+                    <Route path="mrp/*" element={<Dashboard />} />
+                    <Route path="hrm/*" element={<Dashboard />} />
+                    <Route path="admin/*" element={<Dashboard />} />
+                  </Route>
+                </Route>
+
+                {/* Redirects */}
+                <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ConfirmProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

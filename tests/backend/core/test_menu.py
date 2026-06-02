@@ -1,19 +1,23 @@
 """Tests for the Menu system — models, tree building, permissions, API."""
 
 import pytest
-from django.contrib.auth.models import Group, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.db import IntegrityError
 
 from apps.core.models import Menu, MenuRole
+
+User = get_user_model()
 
 
 @pytest.fixture
 def admin_user(db):
     """Create a superuser."""
     return User.objects.create_superuser(
-        username="admin",
         email="admin@example.com",
         password="adminpass123",
+        first_name="Admin",
+        last_name="User",
     )
 
 
@@ -21,9 +25,10 @@ def admin_user(db):
 def regular_user(db):
     """Create a regular user with no groups."""
     return User.objects.create_user(
-        username="regular",
         email="regular@example.com",
         password="regularpass123",
+        first_name="Regular",
+        last_name="User",
     )
 
 

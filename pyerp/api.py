@@ -13,7 +13,7 @@ api = NinjaAPI(
     version="1.0.0",
 )
 
-# Core endpoints
+# Core endpoints (auth endpoints are public)
 api.add_router("/core/", core_router, tags=["core"])
 
 urlpatterns = [
