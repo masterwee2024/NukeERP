@@ -642,5 +642,7 @@ class EmailSetting(ConcurrencyModel):
     @classmethod
     def load(cls) -> "EmailSetting":
         """Get or create the singleton email config."""
-        obj, _ = cls.objects.get_or_create(pk=1)
+        obj = cls.objects.first()
+        if not obj:
+            obj = cls.objects.create()
         return obj
