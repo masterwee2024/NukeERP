@@ -92,9 +92,9 @@ export default function UserListPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-secondary-900">Users</h1>
+    <div className="p-4 md:p-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-secondary-900 md:text-2xl">Users</h1>
         <button
           onClick={() => navigate("/app/admin/users/new")}
           className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
@@ -132,7 +132,7 @@ export default function UserListPage() {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-secondary-200">
+      <div className="overflow-x-auto rounded-lg border border-secondary-200 max-w-[calc(100vw-3rem)]">
         <table className="min-w-full divide-y divide-secondary-200">
           <thead className="bg-secondary-50">
             <tr>
