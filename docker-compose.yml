@@ -111,8 +111,10 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./staticfiles:/app/staticfiles:ro
       - ./media:/app/media:ro
     depends_on:
