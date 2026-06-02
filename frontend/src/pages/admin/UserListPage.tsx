@@ -132,7 +132,67 @@ export default function UserListPage() {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-secondary-200 max-w-[calc(100vw-3rem)]">
+      {/* Mobile: card layout */}
+      <div className="space-y-3 md:hidden">
+        {isLoading ? (
+          <div className="py-8 text-center text-sm text-secondary-400">Loading...</div>
+        ) : users?.length === 0 ? (
+          <div className="py-8 text-center text-sm text-secondary-400">No users found</div>
+        ) : (
+          users?.map((user) => (
+            <div key={user.id} className="rounded-lg border border-secondary-200 bg-white p-4 shadow-sm">
+              <div className="mb-2 flex items-start justify-between">
+                <div>
+                  <div className="font-medium text-secondary-900">{user.full_name || "—"}</div>
+                  <div className="text-sm text-secondary-500">{user.email}</div>
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  user.is_active
+                    ? "bg-success-100 text-success-700"
+                    : "bg-danger-100 text-danger-700"
+                }`}>
+                  {user.is_active ? "Active" : "Inactive"}
+                </span>
+              </div>
+              {user.roles.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1">
+                  {user.roles.map((r) => (
+                    <span key={r.id} className="rounded-full bg-primary-100 px-2 py-0.5 text-xs text-primary-700">
+                      {r.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-3 border-t border-secondary-100 pt-3 text-sm">
+                <button
+                  onClick={() => navigate(`/app/admin/users/${user.id}`)}
+                  className="font-medium text-primary-600 hover:text-primary-800"
+                >
+                  Edit
+                </button>
+                {user.is_active ? (
+                  <button
+                    onClick={() => handleDeactivate(user)}
+                    className="font-medium text-danger-600 hover:text-danger-800"
+                  >
+                    Deactivate
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleReactivate(user)}
+                    className="font-medium text-success-600 hover:text-success-800"
+                  >
+                    Reactivate
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table layout */}
+      <div className="hidden overflow-x-auto rounded-lg border border-secondary-200 md:block">
         <table className="min-w-full divide-y divide-secondary-200">
           <thead className="bg-secondary-50">
             <tr>
