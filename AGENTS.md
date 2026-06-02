@@ -269,13 +269,14 @@ docs(T005): update task spec with menu API details
 
 1. **Read task spec** — `docs/tXXX.md` has everything
 2. **Check dependencies** — task spec lists what must be done first
-3. **Create branch** — `feat/TXXX-description`
+3. **Create branch** — delegate to git agent: "create branch for TXXX"
 4. **Implement** — follow architecture conventions in this file
 5. **Write tests** — match coverage thresholds
 6. **Run checks** — delegate to test-runner agent: "run tests"
-7. **Update task spec** — mark deliverables as done, fill test results table
-8. **Create PR** — link to task spec
-9. **Merge** — squash-merge after CI passes
+7. **Self-review** — delegate to code-review agent: "review my changes"
+8. **Update task spec** — mark deliverables as done, fill test results table
+9. **Create PR** — delegate to git agent: "create PR for TXXX"
+10. **Merge** — squash-merge after CI passes
 
 ### Test Runner Agent
 
@@ -303,6 +304,53 @@ All test execution is delegated to the **test-runner agent** (`.opencode/agent/t
 | 9 | Django check | `uv run python manage.py check` |
 
 **Do NOT run tests manually** — always use the agent. It runs faster, reports consistently, and catches issues across all layers.
+
+### Git/PR Agent
+
+All git operations are delegated to the **git agent** (`.opencode/agent/git-pr.md`).
+
+**Trigger phrases:** "create branch", "commit", "create PR", "push changes", "finish task"
+
+**When to use:**
+- Starting a new task — create branch
+- After implementing — commit with conventional format
+- Before review — push and create PR
+
+**What it does:**
+| Step | Action | Command |
+|---|---|---|
+| 1 | Create branch | `git checkout -b feat/TXXX-description` |
+| 2 | Verify status | `git status && git diff --stat` |
+| 3 | Stage & commit | `git add -A && git commit -m "..."` |
+| 4 | Push | `git push -u origin <branch>` |
+| 5 | Create PR | `gh pr create --title "..." --body "..."` |
+
+**Commit format:** `<type>(<scope>): <description>` with bullet point body
+
+**Do NOT create branches or commits manually** — always use the agent for consistent formatting.
+
+### Code Review Agent
+
+All code reviews are delegated to the **review agent** (`.opencode/agent/code-review.md`).
+
+**Trigger phrases:** "review code", "check my changes", "self-review", "review PR"
+
+**When to use:**
+- Before creating a PR — catch convention violations
+- After implementing — verify all conventions followed
+- When reviewing someone else's PR
+
+**What it checks:**
+| Priority | Check | Violation |
+|---|---|---|
+| CRITICAL | Confirm Dialog | `window.confirm()` usage |
+| CRITICAL | Company Filter | Missing `company_id` filter |
+| CRITICAL | Concurrency | Missing `select_for_update()` |
+| HIGH | Hardcoded IDs | `company_id=1`, `user_id=1` |
+| MEDIUM | Services Layer | Business logic in views |
+| LOW | Responsive | Missing `overflow-x-auto` |
+
+**Do NOT review code manually** — always use the agent for consistent coverage.
 
 ## Malaysian Compliance Gotchas
 
