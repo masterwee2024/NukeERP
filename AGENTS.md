@@ -272,10 +272,37 @@ docs(T005): update task spec with menu API details
 3. **Create branch** — `feat/TXXX-description`
 4. **Implement** — follow architecture conventions in this file
 5. **Write tests** — match coverage thresholds
-6. **Run checks** — `uv run pre-commit run --all-files`
+6. **Run checks** — delegate to test-runner agent: "run tests"
 7. **Update task spec** — mark deliverables as done, fill test results table
 8. **Create PR** — link to task spec
 9. **Merge** — squash-merge after CI passes
+
+### Test Runner Agent
+
+All test execution is delegated to the **test-runner agent** (`.opencode/agent/test-runner.md`).
+
+**Trigger phrases:** "run tests", "test everything", "check all", "verify"
+
+**When to use:**
+- After implementing a task — verify no regressions
+- Before creating a PR — ensure all checks pass
+- After fixing a bug — confirm the fix works
+- When switching tasks — clean slate check
+
+**What it runs:**
+| Step | Check | Command |
+|---|---|---|
+| 1 | Python lint | `uv run ruff check .` |
+| 2 | Python format | `uv run black --check .` |
+| 3 | Backend tests | `uv run pytest tests/backend/ -v` |
+| 4 | Frontend lint | `npm run lint` |
+| 5 | Frontend format | `npm run format:check` |
+| 6 | TypeScript | `npx tsc --noEmit` |
+| 7 | Frontend tests | `npm run test:run` |
+| 8 | Build | `npm run build` |
+| 9 | Django check | `uv run python manage.py check` |
+
+**Do NOT run tests manually** — always use the agent. It runs faster, reports consistently, and catches issues across all layers.
 
 ## Malaysian Compliance Gotchas
 
