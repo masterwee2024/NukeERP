@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
 import api from "@/lib/api";
 
 interface User {
@@ -73,7 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (data: { email: string; password: string; first_name?: string; last_name?: string }) => {
+    async (data: {
+      email: string;
+      password: string;
+      first_name?: string;
+      last_name?: string;
+    }) => {
       const res = await api.post("/core/auth/register/", data);
       localStorage.setItem("access_token", res.data.access);
       localStorage.setItem("refresh_token", res.data.refresh);

@@ -18,7 +18,9 @@ export default function ResetPasswordPage() {
       <div className="flex min-h-screen items-center justify-center bg-secondary-50 p-4">
         <div className="w-full max-w-md text-center">
           <div className="rounded-lg border border-secondary-200 bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-semibold text-secondary-900">Invalid Reset Link</h2>
+            <h2 className="text-xl font-semibold text-secondary-900">
+              Invalid Reset Link
+            </h2>
             <p className="mt-2 text-secondary-500">
               This password reset link is invalid or has expired.
             </p>
@@ -51,7 +53,11 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      await api.post("/core/auth/reset-password/", { uid, token, new_password: password });
+      await api.post("/core/auth/reset-password/", {
+        uid,
+        token,
+        new_password: password,
+      });
       navigate("/login", { state: { message: "Password reset successfully" } });
     } catch {
       setError("Failed to reset password. The link may have expired.");
@@ -71,11 +77,16 @@ export default function ResetPasswordPage() {
         <div className="rounded-lg border border-secondary-200 bg-white p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-700">{error}</div>
+              <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-700">
+                {error}
+              </div>
             )}
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 New Password
               </label>
               <input
@@ -89,7 +100,10 @@ export default function ResetPasswordPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Confirm Password
               </label>
               <input

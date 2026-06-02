@@ -32,13 +32,26 @@ export default function ForgotPasswordPage() {
           </div>
           <div className="rounded-lg border border-secondary-200 bg-white p-8 shadow-sm">
             <div className="mb-4 text-success-500">
-              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <svg
+                className="mx-auto h-12 w-12"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-secondary-900">Check your email</h2>
+            <h2 className="text-xl font-semibold text-secondary-900">
+              Check your email
+            </h2>
             <p className="mt-2 text-secondary-500">
-              If an account exists with <strong>{email}</strong>, we've sent a password reset link.
+              If an account exists with <strong>{email}</strong>, we've sent a password
+              reset link.
             </p>
             <Link
               to="/login"
@@ -63,7 +76,9 @@ export default function ForgotPasswordPage() {
         <div className="rounded-lg border border-secondary-200 bg-white p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-700">{error}</div>
+              <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-700">
+                {error}
+              </div>
             )}
 
             <p className="text-sm text-secondary-500">
@@ -71,7 +86,10 @@ export default function ForgotPasswordPage() {
             </p>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Email
               </label>
               <input
@@ -95,7 +113,10 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-6 text-center text-sm text-secondary-500">
             Remember your password?{" "}
-            <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+            <Link
+              to="/login"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
               Sign in
             </Link>
           </div>

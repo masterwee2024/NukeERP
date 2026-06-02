@@ -39,8 +39,8 @@ export default function RegisterPage() {
       navigate("/app/dashboard");
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        "Registration failed. Please try again.";
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail || "Registration failed. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -65,7 +65,10 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-secondary-700">
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-secondary-700"
+                >
                   First Name
                 </label>
                 <input
@@ -77,7 +80,10 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-secondary-700">
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-secondary-700"
+                >
                   Last Name
                 </label>
                 <input
@@ -91,7 +97,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Email
               </label>
               <input
@@ -105,7 +114,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Password
               </label>
               <input
@@ -119,7 +131,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Confirm Password
               </label>
               <input
@@ -143,7 +158,10 @@ export default function RegisterPage() {
 
           <div className="mt-6 text-center text-sm text-secondary-500">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+            <Link
+              to="/login"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
               Sign in
             </Link>
           </div>

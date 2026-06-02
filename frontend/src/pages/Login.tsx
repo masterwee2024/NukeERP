@@ -20,8 +20,8 @@ export default function LoginPage() {
       navigate("/app/dashboard");
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        "Login failed. Please check your credentials.";
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail || "Login failed. Please check your credentials.";
       setError(message);
     } finally {
       setLoading(false);
@@ -47,7 +47,10 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Email
               </label>
               <input
@@ -62,7 +65,10 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-secondary-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-secondary-700"
+              >
                 Password
               </label>
               <input
@@ -96,7 +102,10 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center text-sm text-secondary-500">
             Don't have an account?{" "}
-            <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
+            <Link
+              to="/register"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
               Register
             </Link>
           </div>
