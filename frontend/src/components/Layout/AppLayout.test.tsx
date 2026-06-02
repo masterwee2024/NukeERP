@@ -28,6 +28,11 @@ vi.mock("axios", () => ({
   },
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ logout: vi.fn(), user: { email: "admin@test.com" } }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 function renderWithProviders(ui: React.ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },

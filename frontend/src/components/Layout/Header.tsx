@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCompanies } from "@/hooks/useCompanyContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -91,9 +92,12 @@ function getBreadcrumbs(pathname: string): { label: string; href: string }[] {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const crumbs = getBreadcrumbs(location.pathname);
   const { data: companies } = useCompanies();
+  const { logout } = useAuth();
   const [companyOpen, setCompanyOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
   const currentCompanyId = localStorage.getItem("current_company_id");
   const currentCompany = companies?.find((c) => c.id === currentCompanyId);
 
@@ -216,14 +220,42 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </span>
         </button>
 
-        {/* User avatar */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-sm font-medium text-white">
-            A
-          </div>
-          <span className="hidden text-sm font-medium text-secondary-700 md:block">
-            Admin
-          </span>
+        {/* User dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setUserOpen(!userOpen)}
+            className="flex items-center gap-2 rounded-md p-1 hover:bg-secondary-100"
+            aria-label="User menu"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-sm font-medium text-white">
+              A
+            </div>
+            <span className="hidden text-sm font-medium text-secondary-700 md:block">
+              Admin
+            </span>
+            <svg className="hidden h-3 w-3 text-secondary-400 md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {userOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setUserOpen(false)} />
+              <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-secondary-200 bg-white py-1 shadow-lg">
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/login");
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-secondary-700 hover:bg-secondary-50"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>
