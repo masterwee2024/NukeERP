@@ -574,3 +574,25 @@ class UserRole(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.user.email} → {self.role.name}"
+
+
+class LoginHistory(ConcurrencyModel):
+    """Record of user login events."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="login_history"
+    )
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.CharField(max_length=500, blank=True, default="")
+    device_type = models.CharField(max_length=50, blank=True, default="")
+    is_successful = models.BooleanField(default=True)
+    login_time = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "core_login_history"
+        ordering = ["-login_time"]
+        verbose_name = "Login History"
+        verbose_name_plural = "Login Histories"
+
+    def __str__(self):
+        return f"{self.user.email} @ {self.login_time}"

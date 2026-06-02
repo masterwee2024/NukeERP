@@ -29,6 +29,8 @@ const RegisterPage = lazy(() => import("./pages/Register"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const UserListPage = lazy(() => import("./pages/admin/UserListPage"));
+const UserFormPage = lazy(() => import("./pages/admin/UserFormPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function LoadingSpinner() {
@@ -65,7 +67,10 @@ export default function App() {
                     <Route path="crm/*" element={<Dashboard />} />
                     <Route path="mrp/*" element={<Dashboard />} />
                     <Route path="hrm/*" element={<Dashboard />} />
-                    <Route path="admin/*" element={<Dashboard />} />
+                    <Route path="admin" element={<Dashboard />} />
+                    <Route path="admin/users" element={<UserListPage />} />
+                    <Route path="admin/users/new" element={<UserFormPage />} />
+                    <Route path="admin/users/:id" element={<UserFormPage />} />
                   </Route>
                 </Route>
 
