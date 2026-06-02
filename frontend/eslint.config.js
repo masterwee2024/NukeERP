@@ -18,5 +18,16 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "confirm",
+          message:
+            "Use useConfirm() hook instead of window.confirm(). See AGENTS.md Confirm Dialog section.",
+        },
+      ],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+    },
   },
 ]);
