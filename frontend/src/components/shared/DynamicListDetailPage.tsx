@@ -50,6 +50,8 @@ interface DynamicListDetailPageProps<T> {
   onViewStateChange?: (state: "list" | "detail" | "edit" | "create") => void;
   /** Refresh callback */
   onRefresh?: () => void;
+  /** Extra content between the title and the card list */
+  listHeader?: React.ReactNode;
 }
 
 function DynamicListDetailPage<T extends { id: string }>({
@@ -68,6 +70,7 @@ function DynamicListDetailPage<T extends { id: string }>({
   viewState: externalViewState,
   onViewStateChange,
   onRefresh,
+  listHeader,
 }: DynamicListDetailPageProps<T>) {
   const isMobile = useIsMobile();
 
@@ -246,6 +249,7 @@ function DynamicListDetailPage<T extends { id: string }>({
             </button>
           )}
         </div>
+        {listHeader}
         {renderListView()}
       </div>
     );
