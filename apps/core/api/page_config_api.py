@@ -219,12 +219,25 @@ def delete_config(request, page_key: str):
 # --- Field endpoints ---
 
 
-@router.post(
-    "/{page_key}/fields/",
-)
+def _field_to_dict(f):
+    return {
+        "id": str(f.id),
+        "field_name": f.field_name,
+        "label": f.label,
+        "field_type": f.field_type,
+        "is_custom": f.is_custom,
+        "required": f.required,
+        "hidden": f.hidden,
+        "sort_order": f.sort_order,
+        "options": f.options,
+    }
+
+
+@router.post("/{page_key}/fields/")
 def add_field(request, page_key: str, data: PageConfigFieldCreateSchema):
     """Add a field to a page config."""
-    return page_config_service.add_field(page_key, data.model_dump())
+    field = page_config_service.add_field(page_key, data.model_dump())
+    return _field_to_dict(field)
 
 
 @router.put("/{page_key}/fields/{field_id}/")
@@ -235,7 +248,8 @@ def update_field(
     update_data = data.model_dump(exclude_unset=True)
     if not update_data:
         raise HttpError(400, "No fields to update")
-    return page_config_service.update_field(page_key, field_id, update_data)
+    field = page_config_service.update_field(page_key, field_id, update_data)
+    return _field_to_dict(field)
 
 
 @router.delete("/{page_key}/fields/{field_id}/")
