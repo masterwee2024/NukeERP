@@ -153,12 +153,14 @@ pyERP/
 - Critical paths (GL posting, payroll calc, SST computation) require tests before merge
 
 ### Git
-- **Remote**: `origin` → `https://github.com/masterwee2024/NukeERP.git`
-- **Default branch**: `master` (protected — no direct pushes)
+- **Remote**: `origin` → `https://github.com/masterwee2024/NukeERP.git` — **single source of truth**
+- **Default branch**: `master` (protected — no direct pushes, no force pushes)
+- **ALL changes** (code, docs, config) must go through GitHub PRs — no exceptions
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `docs:`, `test:`
-- **Merge strategy**: Squash-merge PRs to `master` (never commit directly)
+- **Merge strategy**: Squash-merge PRs to `master` via `gh pr merge --squash --delete-branch --admin`
 - **Branch naming**: `feat/description`, `fix/description`, `phase-N/description`
 - **After merge**: Delete the branch immediately — stale branches cause confusion and potential overrides
+- **No direct pushes to master**: branch protection enforces this. Always: branch → push → PR → merge → delete
 
 ## Development Workflow
 
