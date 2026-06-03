@@ -12,7 +12,7 @@
 |---|---|---|
 | Web framework | **Django 5.x** | ORM, admin, auth, permissions, migrations, mature ecosystem |
 | API layer | **Django Ninja** (FastAPI-style syntax, native Django integration) | OpenAPI auto-docs, async views, Pydantic validation — all within Django. Avoids split-process complexity. |
-| Database | **PostgreSQL 16** | JSONB for flexible schemas, full-text search, strong ACID |
+| Database | **PostgreSQL 16** | JSONB for flexible schemas, full-text search, strong ACID. **`custom_fields` JSONB column on every business model** for user-defined fields at runtime. |
 | Task queue | **Celery + Redis** | Async jobs: report generation, email, bank feeds, e-invoice submission |
 | File storage | **MinIO** (S3-compatible) or local FS | Document attachments, invoice PDFs, employee files |
 | Auth | **JWT** (djangorestframework-simplejwt) | Token-based auth for React SPA + future mobile app |
@@ -202,7 +202,7 @@
 | **Numbering Series** | Configurable prefixes/ranges for all document types |
 | **Approval Workflows** | Configurable multi-level approval for POs, invoices, leave, claims |
 | **Confirm Dialog** | Standardized confirmation for all CRUD actions, single reusable component |
-| **Dynamic Page Config** | Database-driven page configuration. All forms, lists, detail pages rendered from config. Visual page builder. Zero code to add new fields. |
+| **Dynamic Page Config** | Database-driven page configuration. All forms, lists, detail pages rendered from config. Rename labels, hide fields, add custom fields (stored in `custom_fields` JSONB column). Field Customizer UI for management. Zero code to add new fields. |
 | **Document Attachments** | Global attachment service — any record can have file attachments (PDF, images, documents) |
 | **Notifications** | In-app, email, PWA push, approval reminders, email approve/reject links |
 | **Internal Messaging** | Slack-like channels, DMs, threads, file attachments, link previews, system messages, @mentions, search |
@@ -378,6 +378,7 @@ CSV-based data migration with guided wizard for go-live.
 Core:
   Company, Branch, FinancialYear, FiscalPeriod, Currency, ExchangeRate
   Menu, MenuRole (dynamic menu system)
+  **All models inherit `ConcurrencyModel` → `custom_fields` JSONB column** for user-defined extra fields
 
 Financial:
   ChartOfAccount, JournalEntry, JournalEntryLine, AccountPeriod, TaxCode, TaxRate
@@ -430,9 +431,9 @@ Admin:
 
 | Task | Description |
 |---|---|
-| T010 | Page Config Engine — PageConfig + PageConfigField models, admin CRUD, API endpoints |
+| T010 | Page Config Engine — PageConfig + PageConfigField models, admin CRUD, API endpoints. Includes `is_custom` flag on `PageConfigField` for user-defined fields. |
 | T011 | Dynamic Page Renderer — generic React component rendering forms/lists from database config |
-| T012 | Visual Page Builder UI — drag-and-drop field placement, live preview, config save |
+| T012 | ~~Visual Page Builder UI~~ **Page Config Field Customizer** — form-based field editor. Replace drag-and-drop page builder with simple per-page CRUD for fields. Manage labels, hide/show, required, sort order. Add custom fields with type (text, decimal, date, dropdown, etc.) stored in `custom_fields` JSONB on the model. |
 | T013 | Company & Financial Year Setup |
 | T014 | Role-Based Access Control (RBAC) — roles, permissions, Menu-Role linking |
 | T015 | User Management UI — user CRUD, role assignment, admin password reset |
@@ -565,12 +566,13 @@ Admin:
 | REST vs GraphQL | **REST (Django Ninja)** | Simpler for ERP CRUD; React Query handles caching well. GraphQL can be added later for dashboards. |
 | Multi-tenancy | **Shared database, global master data + row-level transactions** | Master data (items, customers, vendors, employees, COA) is global with company assignment via junction tables. Transactions are per-company (company_id FK). Company group hierarchy for consolidation. |
 | Menu system | **Database-driven, role-linked** | No code changes needed to add new menu items. RBAC controls visibility per role. |
-| Page rendering | **Metadata-driven UI via PageConfig tables** | One generic React component renders any page from database config. Add/change fields by inserting records — no code changes. Visual page builder for non-technical users. |
+| Page rendering | **Metadata-driven UI via PageConfig tables + `custom_fields` JSONB** | `DynamicFormPage` / `DynamicListDetailPage` renders any page from database config. Users rename labels, hide fields, reorder, add custom fields (stored in JSONB, rendered from config). Field Customizer UI replaces drag-and-drop page builder — simpler, covers real needs. |
 | Confirmation dialogs | **Single reusable `useConfirm()` hook** | Every CRUD action goes through one confirmation component. Zero repetition across modules. |
 | i18n approach | **Django's built-in `i18n` + `gettext`** for backend, **react-intl** or **i18next** for frontend | Support BM + English at minimum; template switching for Chinese. |
 | PDF generation | **WeasyPrint (server-side)** for invoices, payslips, reports | Pixel-perfect PDFs from HTML/CSS templates; no browser dependency. |
 | Real-time | **No WebSocket initially** | ERP does not need real-time. Add Django Channels if live dashboard or notifications become critical. |
 | Mobile app | **PWA first**, React Native later | PWA gives instant mobile access; offline-capable with service workers. |
+| Custom fields | **`custom_fields` JSONB column on every model** (`ConcurrencyModel` → `CustomFieldsMixin`) | No EAV complexity. Unknown field names in API payloads route to JSONB automatically via `set_field()` / `__init__` override. Frontend sees flat records — merge happens in API fetch layer. No schema migrations needed for user-defined fields. |
 
 ---
 
@@ -581,7 +583,7 @@ Admin:
 - **API**: All endpoints return JSON via Django Ninja schemas. No template-rendered pages outside admin.
 - **React**: One component per file. Colocate styles with Tailwind classes. No CSS files except global resets.
 - **Confirmation dialogs**: Every create/update/delete/post/void action uses `useConfirm()` hook. No exceptions. No `window.confirm()`.
-- **Page config**: All forms and lists rendered from `PageConfig` + `PageConfigField` tables. Never hardcode form fields in React. Use `DynamicFormPage` / `DynamicListPage` components.
+- **Page config**: All forms and lists rendered from `PageConfig` + `PageConfigField` tables. Never hardcode form fields in React. Use `DynamicFormPage` / `DynamicListPage` components. Custom fields use `custom_fields` JSONB on the model — no schema changes needed. Use Field Customizer UI to manage.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`). Squash-merge to `main`.
 - **Testing**: `pytest` for backend. `Vitest` for frontend unit. `Playwright` for E2E. Critical paths require tests before merging.
 - **Branch naming**: `feat/description`, `fix/description`, `phase-N/description`
