@@ -61,20 +61,28 @@ export default function DynamicListDetailPage({ configKey, title: titleProp, act
   const hasEdit = hasAction("edit");
   const hasDelete = hasAction("delete");
 
+  // Fetch detail record for actionSlots (contains nested data like company_assignments)
+  const { data: detailRecord } = useQuery({
+    queryKey: [config?.api_endpoint, selectedId],
+    queryFn: async (): Promise<Record<string, unknown>> => {
+      const { data } = await api.get(`${endpoint}${selectedId}/`);
+      return data;
+    },
+    enabled: !!config && !!selectedId && view === "detail",
+  });
+
   // ── Helpers ───────────────────────────────────────
 
   const columnFields = config?.fields.filter((f) => f.is_column) ?? [];
-  const labelField = columnFields[0]?.field_name || "id";
 
   function toCard(record: Record<string, unknown>) {
+    const cols = columnFields.map((f) => ({ name: f.field_name, val: String(record[f.field_name] ?? ""), type: f.field_type }));
+    const label = cols[0]?.val || String(record.id);
+    const meta = cols.slice(1);
     return {
       id: String(record.id),
-      label: String(record[labelField] ?? record.id),
-      sublabel: columnFields.length > 1 ? String(record[columnFields[1].field_name] ?? "") : undefined,
-      badges: columnFields.slice(2, 4).map((f) => ({
-        label: String(record[f.field_name] ?? ""),
-        color: "bg-secondary-100 text-secondary-600",
-      })),
+      label,
+      meta,
     };
   }
 
@@ -104,11 +112,17 @@ export default function DynamicListDetailPage({ configKey, title: titleProp, act
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-secondary-900">{card.label}</span>
                 </div>
-                {card.sublabel && <div className="mt-0.5 text-xs text-secondary-500">{card.sublabel}</div>}
-                {card.badges.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {card.badges.map((b, i) => (
-                      <span key={i} className={`rounded-full px-1.5 py-0.5 text-xs ${b.color}`}>{b.label}</span>
+                {card.meta.length > 0 && (
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-secondary-500">
+                    {card.meta.map((m, i) => (
+                      <span key={i} className="inline-flex items-center gap-1">
+                        {m.type === "badge" ? (
+                          <span className="rounded-full bg-secondary-100 px-1.5 py-0.5 text-secondary-600">{m.val}</span>
+                        ) : (
+                          <span>{m.val || "\u2014"}</span>
+                        )}
+                        {i < card.meta.length - 1 && <span className="text-secondary-300">|</span>}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -139,11 +153,11 @@ export default function DynamicListDetailPage({ configKey, title: titleProp, act
               {isMobile && <Trash2 className="h-4 w-4" />} Delete
             </button>
           )}
-          {actionSlots?.detailHeader?.(selected, refresh)}
+          {actionSlots?.detailHeader?.(detailRecord ?? selected, refresh)}
         </div>
         <DynamicDetailPage config={config!} recordId={String(selected.id)} />
-        {actionSlots?.betweenSections?.(selected)}
-        {actionSlots?.detailFooter?.(selected)}
+        {actionSlots?.betweenSections?.(detailRecord ?? selected)}
+        {actionSlots?.detailFooter?.(detailRecord ?? selected)}
       </div>
     );
   }
