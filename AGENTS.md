@@ -437,6 +437,7 @@ This project uses Graphify for knowledge graph generation. Before scanning the c
 10. **Adding company_id to master data** — master data is global; use junction tables for assignment
 11. **Forgetting company filter** — master data queries must filter by company assignment, not company_id
 12. **API auth uses JWTAuth only** — `SessionAuth` was removed from the auth stack. All API calls must provide `Authorization: Bearer <token>`. Tests must use JWT tokens (via `AccessToken.for_user(user)`), not `force_login()`. CSRF is handled by Django's standard `CsrfViewMiddleware` — API routes are considered safe because they don't use session cookies.
+13. **Docker node_modules is isolated** — When adding new npm dependencies (via PR merge), the Docker container's `node_modules` is separate from the host's. Run `docker compose exec frontend npm install` after merging. If Vite dev server was already running, it should auto-reload; if not, a hard browser refresh fixes it.
 
 ## Industry Modules (Extensible Platform)
 
