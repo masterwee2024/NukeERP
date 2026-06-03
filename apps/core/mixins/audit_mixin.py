@@ -140,7 +140,11 @@ class AuditModelMixin(models.Model):
         old_fields = get_field_dict(self)
         record_pk = str(self.pk)
         super().delete(*args, **kwargs)
-        changes = {k: {"old": v, "new": None} for k, v in old_fields.items() if k not in AUDIT_EXCLUDE_FIELDS}
+        changes = {
+            k: {"old": v, "new": None}
+            for k, v in old_fields.items()
+            if k not in AUDIT_EXCLUDE_FIELDS
+        }
         from apps.core.models import AuditLog
 
         AuditLog.objects.create(
@@ -158,7 +162,11 @@ class AuditModelMixin(models.Model):
         from apps.core.models import AuditLog
 
         fields = get_field_dict(self)
-        changes = {k: {"old": None, "new": v} for k, v in fields.items() if k not in AUDIT_EXCLUDE_FIELDS}
+        changes = {
+            k: {"old": None, "new": v}
+            for k, v in fields.items()
+            if k not in AUDIT_EXCLUDE_FIELDS
+        }
         AuditLog.objects.create(
             model_name=get_model_name(self),
             record_id=str(self.pk),

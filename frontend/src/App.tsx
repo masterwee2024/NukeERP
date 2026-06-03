@@ -72,9 +72,15 @@ export default function App() {
                     <Route path="hrm/*" element={<Dashboard />} />
                     <Route path="admin" element={<Dashboard />} />
                     <Route path="admin/users" element={<UserManagementPage />} />
-                    <Route path="admin/field-customizer" element={<FieldCustomizerPage />} />
+                    <Route
+                      path="admin/field-customizer"
+                      element={<FieldCustomizerPage />}
+                    />
                     <Route path="admin/settings" element={<EmailSettingsPage />} />
-                    <Route path="admin/numbering-series" element={<NumberingSeriesPage />} />
+                    <Route
+                      path="admin/numbering-series"
+                      element={<NumberingSeriesPage />}
+                    />
                     <Route path="admin/audit-logs" element={<AuditLogPage />} />
                   </Route>
                 </Route>

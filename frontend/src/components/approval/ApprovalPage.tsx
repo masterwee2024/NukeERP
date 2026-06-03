@@ -13,9 +13,7 @@ interface ApprovalPageProps {
 
 export function ApprovalPage({ currentUserId }: ApprovalPageProps) {
   const { executionId } = useParams<{ executionId: string }>();
-  const [activeTab, setActiveTab] = useState<"approval" | "history">(
-    "approval"
-  );
+  const [activeTab, setActiveTab] = useState<"approval" | "history">("approval");
 
   const { data: context, isLoading, error } = useExecutionContext(executionId);
   const { data: pendingData } = usePendingApprovals();
@@ -26,12 +24,8 @@ export function ApprovalPage({ currentUserId }: ApprovalPageProps) {
   if (!executionId) {
     return (
       <div className="p-6">
-        <h1 className="mb-6 text-2xl font-bold text-secondary-800">
-          Approval Center
-        </h1>
-        <PendingList
-          items={pendingData?.results || []}
-        />
+        <h1 className="mb-6 text-2xl font-bold text-secondary-800">Approval Center</h1>
+        <PendingList items={pendingData?.results || []} />
       </div>
     );
   }
@@ -112,9 +106,7 @@ export function ApprovalPage({ currentUserId }: ApprovalPageProps) {
               {context.document_data ? (
                 <DocumentView data={context.document_data} />
               ) : (
-                <p className="text-secondary-500">
-                  Document data not available.
-                </p>
+                <p className="text-secondary-500">Document data not available.</p>
               )}
             </div>
           )}
@@ -168,10 +160,7 @@ export function ApprovalPage({ currentUserId }: ApprovalPageProps) {
         </div>
 
         <div className="space-y-4">
-          <ApprovalPanel
-            context={context}
-            currentUserId={currentUserId}
-          />
+          <ApprovalPanel context={context} currentUserId={currentUserId} />
 
           {context.status === "pending" && (
             <div className="rounded-lg border border-secondary-200 bg-white p-4">
@@ -185,9 +174,7 @@ export function ApprovalPage({ currentUserId }: ApprovalPageProps) {
                 placeholder="User ID to delegate to"
                 className="mb-2 w-full rounded-md border border-secondary-300 p-2 text-sm focus:border-primary-500 focus:outline-none"
               />
-              {errorMsg && (
-                <p className="mb-2 text-xs text-danger-500">{errorMsg}</p>
-              )}
+              {errorMsg && <p className="mb-2 text-xs text-danger-500">{errorMsg}</p>}
               <button
                 onClick={handleDelegate}
                 disabled={isPending || !delegateUserId}
@@ -233,9 +220,7 @@ function PendingList({
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-secondary-800">
-                {item.workflow_name}
-              </p>
+              <p className="font-medium text-secondary-800">{item.workflow_name}</p>
               <p className="text-sm text-secondary-500">
                 {item.document_type} — {item.document_id.slice(0, 8)}
               </p>
@@ -262,9 +247,7 @@ function DocumentView({ data }: { data: Record<string, unknown> }) {
             <dt className="text-xs font-medium uppercase text-secondary-500">
               {key.replace(/_/g, " ")}
             </dt>
-            <dd className="mt-1 text-sm text-secondary-800">
-              {String(value ?? "—")}
-            </dd>
+            <dd className="mt-1 text-sm text-secondary-800">{String(value ?? "—")}</dd>
           </div>
         );
       })}

@@ -28,11 +28,17 @@ export default function EmailSettingsPage() {
     from_name: "",
   });
   const [testEmail, setTestEmail] = useState("");
-  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(
+    null
+  );
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const { data: config, error: configError, isLoading: configLoading } = useQuery({
+  const {
+    data: config,
+    error: configError,
+    isLoading: configLoading,
+  } = useQuery({
     queryKey: ["email-settings"],
     queryFn: async (): Promise<EmailConfig> => {
       const { data } = await api.get("/core/admin/settings/email/");
@@ -42,6 +48,7 @@ export default function EmailSettingsPage() {
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (config) setForm(config);
   }, [config]);
 
@@ -92,21 +99,31 @@ export default function EmailSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-4 md:p-6">
-      <h1 className="mb-6 text-xl font-bold text-secondary-900 md:text-2xl">Email Settings</h1>
+      <h1 className="mb-6 text-xl font-bold text-secondary-900 md:text-2xl">
+        Email Settings
+      </h1>
 
       {configLoading && (
-        <div className="mb-4 rounded-lg bg-secondary-50 p-3 text-sm text-secondary-600">Loading settings...</div>
+        <div className="mb-4 rounded-lg bg-secondary-50 p-3 text-sm text-secondary-600">
+          Loading settings...
+        </div>
       )}
       {configError && (
         <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger-700">
-          Failed to load settings: {(configError as any)?.response?.data?.detail || "Check server logs"}
+          Failed to load settings:{" "}
+          {(configError as { response?: { data?: { detail?: string } } })?.response
+            ?.data?.detail || "Check server logs"}
         </div>
       )}
       {saved && (
-        <div className="mb-4 rounded-lg bg-success-50 p-3 text-sm text-success-700">Settings saved</div>
+        <div className="mb-4 rounded-lg bg-success-50 p-3 text-sm text-success-700">
+          Settings saved
+        </div>
       )}
       {saveError && (
-        <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger-700">{saveError}</div>
+        <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger-700">
+          {saveError}
+        </div>
       )}
 
       <div className="space-y-4 rounded-lg border border-secondary-200 bg-white p-6">
@@ -114,7 +131,9 @@ export default function EmailSettingsPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-secondary-700">SMTP Host</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              SMTP Host
+            </label>
             <input
               type="text"
               value={form.smtp_host}
@@ -124,11 +143,15 @@ export default function EmailSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-secondary-700">SMTP Port</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              SMTP Port
+            </label>
             <input
               type="number"
               value={form.smtp_port}
-              onChange={(e) => handleChange("smtp_port", parseInt(e.target.value) || 587)}
+              onChange={(e) =>
+                handleChange("smtp_port", parseInt(e.target.value) || 587)
+              }
               className="mt-1 w-full rounded-lg border border-secondary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
             />
           </div>
@@ -136,7 +159,9 @@ export default function EmailSettingsPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-secondary-700">Username</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              Username
+            </label>
             <input
               type="text"
               value={form.smtp_username}
@@ -145,7 +170,9 @@ export default function EmailSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-secondary-700">Password</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              Password
+            </label>
             <input
               type="password"
               value={form.smtp_password}
@@ -179,7 +206,9 @@ export default function EmailSettingsPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-secondary-700">From Email</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              From Email
+            </label>
             <input
               type="email"
               value={form.from_email}
@@ -189,7 +218,9 @@ export default function EmailSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-secondary-700">From Name</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              From Name
+            </label>
             <input
               type="text"
               value={form.from_name}
@@ -214,7 +245,9 @@ export default function EmailSettingsPage() {
         <h2 className="mb-4 text-lg font-semibold text-secondary-900">Test Email</h2>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-secondary-700">Recipient</label>
+            <label className="block text-sm font-medium text-secondary-700">
+              Recipient
+            </label>
             <input
               type="email"
               value={testEmail}
@@ -232,9 +265,13 @@ export default function EmailSettingsPage() {
           </button>
         </div>
         {testResult && (
-          <div className={`mt-3 rounded-lg p-3 text-sm ${
-            testResult.ok ? "bg-success-50 text-success-700" : "bg-danger-50 text-danger-700"
-          }`}>
+          <div
+            className={`mt-3 rounded-lg p-3 text-sm ${
+              testResult.ok
+                ? "bg-success-50 text-success-700"
+                : "bg-danger-50 text-danger-700"
+            }`}
+          >
             {testResult.msg}
           </div>
         )}

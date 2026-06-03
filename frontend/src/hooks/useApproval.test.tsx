@@ -2,10 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
-import {
-  useApproval,
-  usePendingApprovals,
-} from "@/hooks/useApproval";
+import { useApproval, usePendingApprovals } from "@/hooks/useApproval";
 import type { ReactNode } from "react";
 
 vi.mock("@/components/ui/ConfirmDialog", () => ({

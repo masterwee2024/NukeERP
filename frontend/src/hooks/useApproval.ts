@@ -99,17 +99,12 @@ export function useApproval(config?: {
       return data as { execution_id: string; status: string; message: string };
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      config?.onError?.(
-        err.response?.data?.detail || "Failed to submit for approval"
-      );
+      config?.onError?.(err.response?.data?.detail || "Failed to submit for approval");
     },
   });
 
   const approveMutation = useMutation({
-    mutationFn: async (params: {
-      execution_id: string;
-      comment?: string;
-    }) => {
+    mutationFn: async (params: { execution_id: string; comment?: string }) => {
       const confirmed = await confirm({
         title: "Approve",
         message: "Are you sure you want to approve this?",
@@ -130,17 +125,12 @@ export function useApproval(config?: {
       config?.onApproved?.();
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      config?.onError?.(
-        err.response?.data?.detail || "Failed to approve"
-      );
+      config?.onError?.(err.response?.data?.detail || "Failed to approve");
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async (params: {
-      execution_id: string;
-      comment: string;
-    }) => {
+    mutationFn: async (params: { execution_id: string; comment: string }) => {
       const confirmed = await confirm({
         title: "Reject",
         message: "Are you sure you want to reject this?",
@@ -161,9 +151,7 @@ export function useApproval(config?: {
       config?.onRejected?.();
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      config?.onError?.(
-        err.response?.data?.detail || "Failed to reject"
-      );
+      config?.onError?.(err.response?.data?.detail || "Failed to reject");
     },
   });
 
@@ -195,9 +183,7 @@ export function useApproval(config?: {
       config?.onApproved?.();
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      config?.onError?.(
-        err.response?.data?.detail || "Failed to delegate"
-      );
+      config?.onError?.(err.response?.data?.detail || "Failed to delegate");
     },
   });
 

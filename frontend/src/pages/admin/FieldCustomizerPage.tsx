@@ -57,7 +57,19 @@ const MODULE_LABELS: Record<string, string> = {
   mrp: "MRP",
 };
 
-const FORM_FIELD_TYPES = ["text", "number", "decimal", "date", "datetime", "select", "multi_select", "checkbox", "toggle", "textarea", "email"];
+const FORM_FIELD_TYPES = [
+  "text",
+  "number",
+  "decimal",
+  "date",
+  "datetime",
+  "select",
+  "multi_select",
+  "checkbox",
+  "toggle",
+  "textarea",
+  "email",
+];
 
 export default function FieldCustomizerPage() {
   const isMobile = useIsMobile();
@@ -113,7 +125,10 @@ export default function FieldCustomizerPage() {
     mutationFn: async (data: Record<string, unknown>) => {
       await api.post(`/core/page-configs/${selectedPage}/fields/`, data);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] }); closeEditPanel(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] });
+      closeEditPanel();
+    },
     onError: (e: Error) => setSaveError(e.message),
   });
 
@@ -121,7 +136,10 @@ export default function FieldCustomizerPage() {
     mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
       await api.put(`/core/page-configs/${selectedPage}/fields/${id}/`, data);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] }); closeEditPanel(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] });
+      closeEditPanel();
+    },
     onError: (e: Error) => setSaveError(e.message),
   });
 
@@ -129,17 +147,30 @@ export default function FieldCustomizerPage() {
     mutationFn: async (id: string) => {
       await api.delete(`/core/page-configs/${selectedPage}/fields/${id}/`);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] }); setSelectedField(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] });
+      setSelectedField(null);
+    },
   });
 
   // ── Helpers ────────────────────────────────────
 
   const filteredPages = useMemo(() => {
-    return pages.filter((p) => {
-      if (search && !p.page_title.toLowerCase().includes(search.toLowerCase()) && !p.page_key.toLowerCase().includes(search.toLowerCase())) return false;
-      if (moduleFilter && p.module !== moduleFilter) return false;
-      return true;
-    }).sort((a, b) => a.module.localeCompare(b.module) || a.page_title.localeCompare(b.page_title));
+    return pages
+      .filter((p) => {
+        if (
+          search &&
+          !p.page_title.toLowerCase().includes(search.toLowerCase()) &&
+          !p.page_key.toLowerCase().includes(search.toLowerCase())
+        )
+          return false;
+        if (moduleFilter && p.module !== moduleFilter) return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          a.module.localeCompare(b.module) || a.page_title.localeCompare(b.page_title)
+      );
   }, [pages, search, moduleFilter]);
 
   const moduleList = useMemo(() => {
@@ -191,7 +222,7 @@ export default function FieldCustomizerPage() {
   async function handleSave() {
     setSaveError("");
     if (!fieldLabel.trim()) return;
-    if ((!selectedFieldData) && !fieldName.trim()) {
+    if (!selectedFieldData && !fieldName.trim()) {
       setSaveError("Field Name is required for custom fields.");
       return;
     }
@@ -207,7 +238,10 @@ export default function FieldCustomizerPage() {
       placeholder: fieldPlaceholder,
     };
     if (fieldType === "select" || fieldType === "multi_select") {
-      data.options = fieldOptions.split("\n").filter(Boolean).map((o) => ({ label: o.trim(), value: o.trim() }));
+      data.options = fieldOptions
+        .split("\n")
+        .filter(Boolean)
+        .map((o) => ({ label: o.trim(), value: o.trim() }));
       data.options_source = "static";
     }
     if (!selectedFieldData || selectedFieldData.is_custom) {
@@ -238,7 +272,9 @@ export default function FieldCustomizerPage() {
   async function handleDelete(field: PageConfigField) {
     if (!field.is_custom) return;
     // Check if field has data in any record
-    const { data: usage } = await api.get(`/core/page-configs/${selectedPage}/fields/${field.id}/usage/`);
+    const { data: usage } = await api.get(
+      `/core/page-configs/${selectedPage}/fields/${field.id}/usage/`
+    );
     if (usage.used) {
       await confirm({
         title: "Cannot Delete",
@@ -248,7 +284,12 @@ export default function FieldCustomizerPage() {
       });
       return;
     }
-    const ok = await confirm({ title: "Delete Field", message: `Delete custom field "${field.label}"?`, variant: "danger", confirmText: "Delete" });
+    const ok = await confirm({
+      title: "Delete Field",
+      message: `Delete custom field "${field.label}"?`,
+      variant: "danger",
+      confirmText: "Delete",
+    });
     if (ok) deleteMutation.mutate(field.id);
   }
 
@@ -258,47 +299,62 @@ export default function FieldCustomizerPage() {
     return (
       <div className="p-4 md:p-6">
         <h1 className="mb-4 text-xl font-bold text-secondary-900">Field Customizer</h1>
-        <p className="mb-4 text-sm text-secondary-500">Select a page to customize its fields.</p>
+        <p className="mb-4 text-sm text-secondary-500">
+          Select a page to customize its fields.
+        </p>
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
             <input
-              value={search} onChange={(e) => setSearch(e.target.value)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search pages..."
               className="w-full rounded-lg border border-secondary-300 py-2 pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
             />
           </div>
           <select
-            value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}
+            value={moduleFilter}
+            onChange={(e) => setModuleFilter(e.target.value)}
             className="rounded-lg border border-secondary-300 px-3 py-2 text-sm"
           >
             <option value="">All Modules</option>
             {moduleList.map((m) => (
-              <option key={m} value={m}>{MODULE_LABELS[m] ?? m}</option>
+              <option key={m} value={m}>
+                {MODULE_LABELS[m] ?? m}
+              </option>
             ))}
           </select>
         </div>
 
         {pagesLoading ? (
-          <div className="flex h-32 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+          </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredPages.map((p) => (
               <button
-                key={p.id} onClick={() => setSelectedPage(p.page_key)}
+                key={p.id}
+                onClick={() => setSelectedPage(p.page_key)}
                 className="rounded-lg border border-secondary-200 bg-white p-4 text-left hover:border-primary-400 hover:shadow-sm transition-all"
               >
-                <div className="text-sm font-semibold text-secondary-900">{p.page_title}</div>
+                <div className="text-sm font-semibold text-secondary-900">
+                  {p.page_title}
+                </div>
                 <div className="mt-1 text-xs text-secondary-500">{p.page_key}</div>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs text-secondary-600">{MODULE_LABELS[p.module] ?? p.module}</span>
+                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs text-secondary-600">
+                    {MODULE_LABELS[p.module] ?? p.module}
+                  </span>
                   <span className="text-xs text-secondary-400">{p.page_type}</span>
                 </div>
               </button>
             ))}
             {filteredPages.length === 0 && (
-              <div className="col-span-full py-8 text-center text-sm text-secondary-400">No pages found.</div>
+              <div className="col-span-full py-8 text-center text-sm text-secondary-400">
+                No pages found.
+              </div>
             )}
           </div>
         )}
@@ -312,15 +368,27 @@ export default function FieldCustomizerPage() {
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-secondary-200 px-4 py-3 md:px-6">
-        <button onClick={() => { setSelectedPage(null); setSelectedField(null); setEditPanel(false); }}
-          className="inline-flex items-center gap-1 text-sm font-medium text-secondary-600 hover:text-secondary-900">
+        <button
+          onClick={() => {
+            setSelectedPage(null);
+            setSelectedField(null);
+            setEditPanel(false);
+          }}
+          className="inline-flex items-center gap-1 text-sm font-medium text-secondary-600 hover:text-secondary-900"
+        >
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <h1 className="text-lg font-bold text-secondary-900">{pageDetail?.page_title}</h1>
-        <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs text-secondary-600">{pageDetail?.page_key}</span>
+        <h1 className="text-lg font-bold text-secondary-900">
+          {pageDetail?.page_title}
+        </h1>
+        <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs text-secondary-600">
+          {pageDetail?.page_key}
+        </span>
         <div className="flex-1" />
-        <button onClick={openAddField}
-          className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700">
+        <button
+          onClick={openAddField}
+          className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700"
+        >
           <Plus className="h-4 w-4" /> Add Custom Field
         </button>
       </div>
@@ -328,42 +396,69 @@ export default function FieldCustomizerPage() {
       {/* Body */}
       <div className={`flex flex-1 overflow-hidden ${isMobile ? "flex-col" : ""}`}>
         {/* Field list */}
-        <div className={`overflow-y-auto border-r border-secondary-200 ${isMobile ? "h-1/2" : "w-1/2"}`}>
+        <div
+          className={`overflow-y-auto border-r border-secondary-200 ${isMobile ? "h-1/2" : "w-1/2"}`}
+        >
           {fieldsLoading ? (
-            <div className="flex h-32 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>
+            <div className="flex h-32 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+            </div>
           ) : (
             <div className="divide-y divide-secondary-100">
               {standardFields.map((f) => (
-                <button key={f.id} onClick={() => openEditField(f)}
+                <button
+                  key={f.id}
+                  onClick={() => openEditField(f)}
                   className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary-50 transition-colors ${selectedField === f.id ? "bg-primary-50" : ""}`}
                 >
                   <GripVertical className="h-4 w-4 shrink-0 text-secondary-300" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-secondary-900">{f.label || "\u2014"}</span>
-                      <span className="rounded bg-secondary-100 px-1.5 py-0.5 text-xs text-secondary-500">{f.field_type}</span>
-                      {f.required && <span className="text-xs text-danger-500">required</span>}
+                      <span className="text-sm font-medium text-secondary-900">
+                        {f.label || "\u2014"}
+                      </span>
+                      <span className="rounded bg-secondary-100 px-1.5 py-0.5 text-xs text-secondary-500">
+                        {f.field_type}
+                      </span>
+                      {f.required && (
+                        <span className="text-xs text-danger-500">required</span>
+                      )}
                     </div>
                     <div className="text-xs text-secondary-400">{f.field_name}</div>
                   </div>
                 </button>
               ))}
               {customFields.length > 0 && (
-                <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-secondary-400 bg-secondary-50">Custom Fields</div>
+                <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-secondary-400 bg-secondary-50">
+                  Custom Fields
+                </div>
               )}
               {customFields.map((f) => (
-                <button key={f.id} onClick={() => openEditField(f)}
+                <button
+                  key={f.id}
+                  onClick={() => openEditField(f)}
                   className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary-50 transition-colors ${selectedField === f.id ? "bg-primary-50" : ""}`}
                 >
-                  <button onClick={(e) => { e.stopPropagation(); handleDelete(f); }}
-                    className="shrink-0 rounded p-1 text-secondary-400 hover:bg-danger-50 hover:text-danger-600">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(f);
+                    }}
+                    className="shrink-0 rounded p-1 text-secondary-400 hover:bg-danger-50 hover:text-danger-600"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-primary-700">{f.label || "\u2014"}</span>
-                      <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">{f.field_type}</span>
-                      {f.required && <span className="text-xs text-danger-500">required</span>}
+                      <span className="text-sm font-medium text-primary-700">
+                        {f.label || "\u2014"}
+                      </span>
+                      <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">
+                        {f.field_type}
+                      </span>
+                      {f.required && (
+                        <span className="text-xs text-danger-500">required</span>
+                      )}
                     </div>
                     <div className="text-xs text-secondary-400">{f.field_name}</div>
                   </div>
@@ -374,62 +469,123 @@ export default function FieldCustomizerPage() {
         </div>
 
         {/* Edit panel */}
-        <div className={`overflow-y-auto ${isMobile ? "flex-1" : "w-1/2"} ${!editPanel ? "hidden md:flex md:items-center md:justify-center" : ""}`}>
+        <div
+          className={`overflow-y-auto ${isMobile ? "flex-1" : "w-1/2"} ${!editPanel ? "hidden md:flex md:items-center md:justify-center" : ""}`}
+        >
           {!editPanel ? (
-            <div className="text-sm text-secondary-400">Select a field to edit, or click "Add Custom Field".</div>
+            <div className="text-sm text-secondary-400">
+              Select a field to edit, or click "Add Custom Field".
+            </div>
           ) : (
             <div className="p-4 md:p-6 space-y-4">
               <h2 className="text-base font-semibold text-secondary-900">
-                {selectedFieldData?.is_custom || !selectedFieldData ? "Custom Field" : "Standard Field"}
+                {selectedFieldData?.is_custom || !selectedFieldData
+                  ? "Custom Field"
+                  : "Standard Field"}
               </h2>
 
               {(selectedFieldData?.is_custom || !selectedFieldData) && (
-                <FieldInput label="Field Name" value={fieldName} onChange={setFieldName} placeholder="e.g. color" />
+                <FieldInput
+                  label="Field Name"
+                  value={fieldName}
+                  onChange={setFieldName}
+                  placeholder="e.g. color"
+                />
               )}
-              <FieldInput label="Label" value={fieldLabel} onChange={setFieldLabel} placeholder="e.g. Color" />
+              <FieldInput
+                label="Label"
+                value={fieldLabel}
+                onChange={setFieldLabel}
+                placeholder="e.g. Color"
+              />
               {(selectedFieldData?.is_custom || !selectedFieldData) && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary-700">Field Type</label>
-                  <select value={fieldType} onChange={(e) => setFieldType(e.target.value)}
-                    className="w-full rounded-lg border border-secondary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none">
+                  <label className="mb-1 block text-xs font-medium text-secondary-700">
+                    Field Type
+                  </label>
+                  <select
+                    value={fieldType}
+                    onChange={(e) => setFieldType(e.target.value)}
+                    className="w-full rounded-lg border border-secondary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                  >
                     {FORM_FIELD_TYPES.map((ft) => (
-                      <option key={ft} value={ft}>{FIELD_TYPES.find((t) => t.value === ft)?.label ?? ft}</option>
+                      <option key={ft} value={ft}>
+                        {FIELD_TYPES.find((t) => t.value === ft)?.label ?? ft}
+                      </option>
                     ))}
                   </select>
                 </div>
               )}
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm text-secondary-700">
-                  <input type="checkbox" checked={fieldRequired} onChange={(e) => setFieldRequired(e.target.checked)}
-                    className="rounded border-secondary-300 text-primary-600" />
+                  <input
+                    type="checkbox"
+                    checked={fieldRequired}
+                    onChange={(e) => setFieldRequired(e.target.checked)}
+                    className="rounded border-secondary-300 text-primary-600"
+                  />
                   Required
                 </label>
                 <label className="flex items-center gap-2 text-sm text-secondary-700">
-                  <input type="checkbox" checked={fieldHidden} onChange={(e) => setFieldHidden(e.target.checked)}
-                    className="rounded border-secondary-300 text-primary-600" />
+                  <input
+                    type="checkbox"
+                    checked={fieldHidden}
+                    onChange={(e) => setFieldHidden(e.target.checked)}
+                    className="rounded border-secondary-300 text-primary-600"
+                  />
                   Hidden
                 </label>
               </div>
-              <FieldInput label="Sort Order" value={String(fieldSortOrder)} onChange={(v) => setFieldSortOrder(Number(v) || 0)} type="number" />
-              <FieldInput label="Default Value" value={fieldDefault} onChange={setFieldDefault} placeholder="Optional" />
-              <FieldInput label="Placeholder" value={fieldPlaceholder} onChange={setFieldPlaceholder} placeholder="Optional" />
+              <FieldInput
+                label="Sort Order"
+                value={String(fieldSortOrder)}
+                onChange={(v) => setFieldSortOrder(Number(v) || 0)}
+                type="number"
+              />
+              <FieldInput
+                label="Default Value"
+                value={fieldDefault}
+                onChange={setFieldDefault}
+                placeholder="Optional"
+              />
+              <FieldInput
+                label="Placeholder"
+                value={fieldPlaceholder}
+                onChange={setFieldPlaceholder}
+                placeholder="Optional"
+              />
               {(fieldType === "select" || fieldType === "multi_select") && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-secondary-700">Options (one per line)</label>
-                  <textarea value={fieldOptions} onChange={(e) => setFieldOptions(e.target.value)}
-                    rows={4} placeholder="Red&#10;Blue&#10;Green"
+                  <label className="mb-1 block text-xs font-medium text-secondary-700">
+                    Options (one per line)
+                  </label>
+                  <textarea
+                    value={fieldOptions}
+                    onChange={(e) => setFieldOptions(e.target.value)}
+                    rows={4}
+                    placeholder="Red&#10;Blue&#10;Green"
                     className="w-full rounded-lg border border-secondary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
                   />
                 </div>
               )}
               <div className="flex gap-3 pt-2">
-                <button onClick={handleSave}
-                  disabled={!fieldLabel.trim() || addMutation.isPending || updateMutation.isPending}
-                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50">
-                  {addMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
+                <button
+                  onClick={handleSave}
+                  disabled={
+                    !fieldLabel.trim() ||
+                    addMutation.isPending ||
+                    updateMutation.isPending
+                  }
+                  className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {addMutation.isPending || updateMutation.isPending
+                    ? "Saving..."
+                    : "Save"}
                 </button>
-                <button onClick={closeEditPanel}
-                  className="rounded-lg border border-secondary-300 px-4 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50">
+                <button
+                  onClick={closeEditPanel}
+                  className="rounded-lg border border-secondary-300 px-4 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50"
+                >
                   Cancel
                 </button>
               </div>
@@ -446,14 +602,28 @@ export default function FieldCustomizerPage() {
   );
 }
 
-function FieldInput({ label, value, onChange, placeholder, type }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+function FieldInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-secondary-700">{label}</label>
+      <label className="mb-1 block text-xs font-medium text-secondary-700">
+        {label}
+      </label>
       <input
-        type={type ?? "text"} value={value} onChange={(e) => onChange(e.target.value)}
+        type={type ?? "text"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border border-secondary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
       />

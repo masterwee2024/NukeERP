@@ -67,7 +67,7 @@ export function useRecordAuditTrail(modelName: string, recordId: string) {
     queryKey: ["audit-trail", modelName, recordId],
     queryFn: async (): Promise<AuditLog[]> => {
       const { data } = await api.get(
-        `/core/admin/audit-logs/model/${modelName}/${recordId}/`,
+        `/core/admin/audit-logs/model/${modelName}/${recordId}/`
       );
       return data;
     },

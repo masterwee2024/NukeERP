@@ -52,7 +52,13 @@ export function useOptionsResolver(field: PageConfigField): {
     return () => {
       cancelled = true;
     };
-  }, [isApi, field.options_api, field.options_label_field, field.options_value_field, field.option_group_by]);
+  }, [
+    isApi,
+    field.options_api,
+    field.options_label_field,
+    field.options_value_field,
+    field.option_group_by,
+  ]);
 
   return { options: isApi ? apiOptions : syncOptions, loading };
 }

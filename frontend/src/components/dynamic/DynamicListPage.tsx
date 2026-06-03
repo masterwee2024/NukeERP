@@ -74,7 +74,10 @@ export default function DynamicListPage({ config }: DynamicListPageProps) {
         </h2>
         <div className="flex gap-2">
           {config.actions
-            .filter((a) => a.label.toLowerCase() === "create" || a.label.toLowerCase() === "add")
+            .filter(
+              (a) =>
+                a.label.toLowerCase() === "create" || a.label.toLowerCase() === "add"
+            )
             .map((action) => (
               <button
                 key={action.label}

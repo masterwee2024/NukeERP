@@ -29,7 +29,7 @@ export default function FormPageLayout({ leftPanel, rightPanel }: FormPageLayout
       const pct = Math.round((x / rect.width) * 100);
       setSplitPercent(Math.max(20, Math.min(80, pct)));
     },
-    [isDragging],
+    [isDragging]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -55,7 +55,10 @@ export default function FormPageLayout({ leftPanel, rightPanel }: FormPageLayout
     <>
       {/* Desktop: resizable split-pane */}
       <div ref={containerRef} className="hidden xl:flex h-full w-full">
-        <div className="overflow-auto" style={{ flex: `0 0 ${splitPercent}%`, minWidth: 0 }}>
+        <div
+          className="overflow-auto"
+          style={{ flex: `0 0 ${splitPercent}%`, minWidth: 0 }}
+        >
           {leftPanel.content}
         </div>
         <div
@@ -64,7 +67,10 @@ export default function FormPageLayout({ leftPanel, rightPanel }: FormPageLayout
             isDragging ? "bg-primary-500" : ""
           }`}
         />
-        <div className="overflow-auto" style={{ flex: `0 0 ${100 - splitPercent}%`, minWidth: 0 }}>
+        <div
+          className="overflow-auto"
+          style={{ flex: `0 0 ${100 - splitPercent}%`, minWidth: 0 }}
+        >
           {rightPanel.content}
         </div>
       </div>

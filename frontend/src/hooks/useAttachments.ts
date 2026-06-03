@@ -21,7 +21,9 @@ export function useAttachments(contentType: string, objectId: string | undefined
     queryKey,
     queryFn: async (): Promise<Attachment[]> => {
       if (!contentType || !objectId) return [];
-      const { data } = await api.get(`/core/attachments/list/${contentType}/${objectId}/`);
+      const { data } = await api.get(
+        `/core/attachments/list/${contentType}/${objectId}/`
+      );
       return data;
     },
     enabled: !!contentType && !!objectId,
@@ -66,7 +68,8 @@ export function useAttachments(contentType: string, objectId: string | undefined
     attachments,
     isLoading,
     isUploading: uploadMutation.isPending,
-    upload: (file: File, description?: string) => uploadMutation.mutateAsync({ file, description }),
+    upload: (file: File, description?: string) =>
+      uploadMutation.mutateAsync({ file, description }),
     remove: (attachmentId: string) => removeMutation.mutateAsync(attachmentId),
   };
 }

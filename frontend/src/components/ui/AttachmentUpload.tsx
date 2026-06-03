@@ -11,7 +11,17 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
-const ALLOWED_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "gif", "doc", "docx", "xls", "xlsx"];
+const ALLOWED_EXTENSIONS = [
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 interface AttachmentUploadProps {
@@ -117,7 +127,9 @@ export function AttachmentUpload({ onUpload, isUploading }: AttachmentUploadProp
   return (
     <div className="space-y-3">
       {error && (
-        <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-700">{error}</div>
+        <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-700">
+          {error}
+        </div>
       )}
 
       {!selectedFile ? (
@@ -137,11 +149,22 @@ export function AttachmentUpload({ onUpload, isUploading }: AttachmentUploadProp
             if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
           }}
         >
-          <svg className="mb-2 h-8 w-8 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <svg
+            className="mb-2 h-8 w-8 text-secondary-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
           </svg>
           <p className="text-sm text-secondary-600">
-            <span className="font-medium text-primary-600">Click to upload</span> or drag and drop
+            <span className="font-medium text-primary-600">Click to upload</span> or
+            drag and drop
           </p>
           <p className="mt-1 text-xs text-secondary-500">
             PDF, JPG, PNG, GIF, DOC, DOCX, XLS, XLSX up to 10 MB
@@ -157,10 +180,16 @@ export function AttachmentUpload({ onUpload, isUploading }: AttachmentUploadProp
       ) : (
         <div className="rounded-lg border border-secondary-200 bg-white p-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{getFileIcon(selectedFile.type || "application/octet-stream")}</span>
+            <span className="text-2xl">
+              {getFileIcon(selectedFile.type || "application/octet-stream")}
+            </span>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-secondary-900">{selectedFile.name}</p>
-              <p className="text-xs text-secondary-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+              <p className="truncate text-sm font-medium text-secondary-900">
+                {selectedFile.name}
+              </p>
+              <p className="text-xs text-secondary-500">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
             </div>
             <button
               onClick={reset}
@@ -168,8 +197,18 @@ export function AttachmentUpload({ onUpload, isUploading }: AttachmentUploadProp
               title="Remove file"
               type="button"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>

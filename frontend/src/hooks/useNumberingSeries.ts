@@ -64,6 +64,18 @@ export interface AssignmentUpdatePayload {
   updated_at?: string;
 }
 
+export function useNumberingPolicy(id: string) {
+  return useQuery({
+    queryKey: ["numbering-policy", id],
+    queryFn: async (): Promise<NumberingPolicy> => {
+      const { data } = await api.get(`/core/admin/numbering-policies/${id}/`);
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 15 * 1000,
+  });
+}
+
 export function useNumberingPolicies() {
   const queryClient = useQueryClient();
   const queryKey = ["numbering-policies"];
@@ -77,42 +89,20 @@ export function useNumberingPolicies() {
     staleTime: 30 * 1000,
   });
 
-  const fetchPolicy = (id: string) =>
-    useQuery({
-      queryKey: ["numbering-policy", id],
-      queryFn: async (): Promise<NumberingPolicy> => {
-        const { data } = await api.get(
-          `/core/admin/numbering-policies/${id}/`,
-        );
-        return data;
-      },
-      enabled: !!id,
-      staleTime: 15 * 1000,
-    });
-
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["numbering-policies"] });
 
   const createMutation = useMutation({
     mutationFn: async (payload: PolicyCreatePayload) => {
-      const { data } = await api.post(
-        "/core/admin/numbering-policies/",
-        payload,
-      );
+      const { data } = await api.post("/core/admin/numbering-policies/", payload);
       return data;
     },
     onSuccess: invalidate,
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({
-      id,
-      ...payload
-    }: PolicyUpdatePayload & { id: string }) => {
-      const { data } = await api.put(
-        `/core/admin/numbering-policies/${id}/`,
-        payload,
-      );
+    mutationFn: async ({ id, ...payload }: PolicyUpdatePayload & { id: string }) => {
+      const { data } = await api.put(`/core/admin/numbering-policies/${id}/`, payload);
       return data;
     },
     onSuccess: () => {
@@ -135,12 +125,11 @@ export function useNumberingPolicies() {
     }: AssignPayload & { policyId: string }) => {
       const { data } = await api.post(
         `/core/admin/numbering-policies/${policyId}/assign/`,
-        payload,
+        payload
       );
       return data;
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["numbering-policy"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["numbering-policy"] }),
   });
 
   const updateAssignmentMutation = useMutation({
@@ -151,12 +140,11 @@ export function useNumberingPolicies() {
     }: AssignmentUpdatePayload & { policyId: string; assignmentId: string }) => {
       const { data } = await api.put(
         `/core/admin/numbering-policies/${policyId}/assign/${assignmentId}/`,
-        payload,
+        payload
       );
       return data;
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["numbering-policy"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["numbering-policy"] }),
   });
 
   const unassignMutation = useMutation({
@@ -168,17 +156,15 @@ export function useNumberingPolicies() {
       assignmentId: string;
     }) => {
       await api.delete(
-        `/core/admin/numbering-policies/${policyId}/assign/${assignmentId}/`,
+        `/core/admin/numbering-policies/${policyId}/assign/${assignmentId}/`
       );
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["numbering-policy"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["numbering-policy"] }),
   });
 
   return {
     policies,
     isLoading,
-    fetchPolicy,
     create: (data: PolicyCreatePayload) => createMutation.mutateAsync(data),
     update: (id: string, data: PolicyUpdatePayload) =>
       updateMutation.mutateAsync({ id, ...data }),
@@ -188,7 +174,7 @@ export function useNumberingPolicies() {
     updateAssignment: (
       policyId: string,
       assignmentId: string,
-      data: AssignmentUpdatePayload,
+      data: AssignmentUpdatePayload
     ) =>
       updateAssignmentMutation.mutateAsync({
         policyId,

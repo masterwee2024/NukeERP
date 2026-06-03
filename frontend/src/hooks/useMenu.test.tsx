@@ -58,9 +58,7 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -78,9 +76,7 @@ describe("useMenu", () => {
     expect(result.current.data).toHaveLength(2);
     expect(result.current.data![0].name).toBe("Dashboard");
     expect(result.current.data![1].children).toHaveLength(1);
-    expect(result.current.data![1].children![0].name).toBe(
-      "Chart of Accounts"
-    );
+    expect(result.current.data![1].children![0].name).toBe("Chart of Accounts");
   });
 
   it("matches MenuItem type structure", async () => {

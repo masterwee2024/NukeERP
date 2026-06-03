@@ -36,9 +36,7 @@ export function ApprovalPanel({
 
   const isPendingApproval = context.status === "pending";
   const isApprover = context.steps.some(
-    (s) =>
-      s.status === "pending" &&
-      s.approver?.id === currentUserId
+    (s) => s.status === "pending" && s.approver?.id === currentUserId
   );
 
   const handleApprove = async () => {
@@ -66,9 +64,7 @@ export function ApprovalPanel({
   return (
     <div className="rounded-lg border border-secondary-200 bg-white p-4">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-secondary-700">
-          Approval Status
-        </h3>
+        <h3 className="text-sm font-semibold text-secondary-700">Approval Status</h3>
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusColors[context.status] || "bg-gray-100 text-gray-800"}`}
         >
@@ -107,9 +103,7 @@ export function ApprovalPanel({
             className="w-full rounded-md border border-secondary-300 p-2 text-sm focus:border-primary-500 focus:outline-none"
           />
 
-          {error && (
-            <p className="text-xs text-danger-500">{error}</p>
-          )}
+          {error && <p className="text-xs text-danger-500">{error}</p>}
 
           <div className="flex gap-2">
             <button
@@ -137,10 +131,7 @@ export function ApprovalPanel({
           </h4>
           <div className="space-y-2">
             {context.steps.map((step) => (
-              <div
-                key={step.step_id}
-                className="flex items-start gap-2 text-xs"
-              >
+              <div key={step.step_id} className="flex items-start gap-2 text-xs">
                 <span
                   className={`mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full ${
                     step.status === "completed"
@@ -157,9 +148,7 @@ export function ApprovalPanel({
                       {step.action}
                     </span>
                   </p>
-                  {step.comment && (
-                    <p className="text-secondary-500">{step.comment}</p>
-                  )}
+                  {step.comment && <p className="text-secondary-500">{step.comment}</p>}
                   <p className="text-secondary-400">
                     {new Date(step.timestamp).toLocaleString()}
                   </p>

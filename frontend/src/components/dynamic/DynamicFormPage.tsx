@@ -1,8 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { PageConfig, PageConfigField } from "@/hooks/usePageConfig";
-import { useFieldValidation } from "@/hooks/useFieldValidation";
 import { useViewport } from "@/hooks/useViewport";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import DynamicField from "./fields/DynamicField";
@@ -11,6 +10,17 @@ import TabGroup from "./TabGroup";
 import GridLayout from "./GridLayout";
 import ResponsiveFieldFilter from "./ResponsiveFieldFilter";
 import ConditionalEngine from "./ConditionalEngine";
+import {
+  useForm,
+  Controller,
+  type FieldValues,
+  type Resolver,
+  type Control,
+  type FieldErrors,
+} from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { buildZodSchema } from "@/lib/dynamicSchema";
+import { evaluateVisibility } from "@/hooks/useConditionalDisplay";
 
 interface DynamicFormPageProps {
   config: PageConfig;
@@ -21,7 +31,6 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
   const isEdit = !!recordId;
   const queryClient = useQueryClient();
   const { confirm } = useConfirm();
-  const { errors, validateAll, clearFieldError } = useFieldValidation();
   const { isMobile } = useViewport();
 
   const { data: record, isLoading: loadingRecord } = useQuery({
@@ -34,28 +43,92 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
     enabled: isEdit,
   });
 
-  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
-  const prevRecordIdRef = useRef<string | undefined>(undefined);
+  const resolver = useCallback<Resolver<FieldValues>>(
+    (values, context, options) => {
+      const visibility = evaluateVisibility(config.fields, values || {});
+      const schema = buildZodSchema(config.fields, visibility);
+      return zodResolver(schema)(values, context, options);
+    },
+    [config.fields]
+  );
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FieldValues>({
+    resolver,
+    defaultValues: {},
+  });
 
   useEffect(() => {
-    if (isEdit && record && recordId !== prevRecordIdRef.current) {
-      prevRecordIdRef.current = recordId;
-      setFormValues(record as Record<string, unknown>);
+    if (record) {
+      reset(record);
     }
-  }, [isEdit, record, recordId]);
+  }, [record, reset]);
 
   const mutation = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
-      const payload = {
+      const payload: Record<string, unknown> = {
         ...values,
         ...(isEdit && record?.updated_at ? { updated_at: record.updated_at } : {}),
       };
-      if (isEdit) {
-        const { data } = await api.put(`/${config.api_endpoint}/${recordId}/`, payload);
-        return data;
+
+      // Check if any value is a File or FileList
+      let hasFile = false;
+      for (const key of Object.keys(payload)) {
+        const val = payload[key];
+        if (val instanceof File || (val instanceof FileList && val.length > 0)) {
+          hasFile = true;
+          break;
+        }
+      }
+
+      if (hasFile) {
+        const formData = new FormData();
+        for (const key of Object.keys(payload)) {
+          const val = payload[key];
+          if (val instanceof FileList) {
+            for (let i = 0; i < val.length; i++) {
+              formData.append(key, val[i]);
+            }
+          } else if (val instanceof File) {
+            formData.append(key, val);
+          } else if (val === null || val === undefined) {
+            formData.append(key, "");
+          } else if (typeof val === "object") {
+            formData.append(key, JSON.stringify(val));
+          } else {
+            formData.append(key, String(val));
+          }
+        }
+
+        const headers = { "Content-Type": "multipart/form-data" };
+        if (isEdit) {
+          const { data } = await api.put(
+            `/${config.api_endpoint}/${recordId}/`,
+            formData,
+            { headers }
+          );
+          return data;
+        } else {
+          const { data } = await api.post(`/${config.api_endpoint}/`, formData, {
+            headers,
+          });
+          return data;
+        }
       } else {
-        const { data } = await api.post(`/${config.api_endpoint}/`, payload);
-        return data;
+        if (isEdit) {
+          const { data } = await api.put(
+            `/${config.api_endpoint}/${recordId}/`,
+            payload
+          );
+          return data;
+        } else {
+          const { data } = await api.post(`/${config.api_endpoint}/`, payload);
+          return data;
+        }
       }
     },
     onSuccess: () => {
@@ -63,28 +136,17 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
     },
   });
 
-  const handleChange = useCallback(
-    (name: string, value: unknown) => {
-      setFormValues((prev) => ({ ...prev, [name]: value }));
-      clearFieldError(name);
-    },
-    [clearFieldError]
-  );
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const isValid = validateAll(config.fields, formValues);
-    if (!isValid) return;
-
+  const onSubmit = async (data: FieldValues) => {
     const confirmed = await confirm({
       title: isEdit ? "Update Record" : "Create Record",
-      message: `Are you sure you want to ${isEdit ? "update this" : "create a new"} record?`,
+      message: `Are you sure you want to ${
+        isEdit ? "update this" : "create a new"
+      } record?`,
       variant: "warning",
     });
 
     if (!confirmed) return;
-    mutation.mutate(formValues);
+    mutation.mutate(data);
   };
 
   const activeLayout = isMobile ? config.mobile_layout : config.desktop_layout;
@@ -98,7 +160,7 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-secondary-900">
           {isEdit ? `Edit ${config.page_title}` : `New ${config.page_title}`}
@@ -122,7 +184,7 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
         </div>
       </div>
 
-      <ConditionalEngine fields={config.fields} formValues={formValues}>
+      <ConditionalEngine fields={config.fields} control={control}>
         {(visibility) => (
           <ResponsiveFieldFilter fields={config.fields} visibilityMap={visibility}>
             {(visibleFields) => {
@@ -130,9 +192,9 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
                 return renderTabs(visibleFields);
               }
               if (activeLayout === "single") {
-                return renderFields(visibleFields, formValues, errors, handleChange);
+                return renderFields(visibleFields, control, errors);
               }
-              return renderFields(visibleFields, formValues, errors, handleChange);
+              return renderFields(visibleFields, control, errors);
             }}
           </ResponsiveFieldFilter>
         )}
@@ -164,11 +226,17 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
               key: f.field_name,
               colSpan: isMobile ? f.mobile_col_span : f.desktop_col_span,
               children: (
-                <DynamicField
-                  field={f}
-                  value={formValues[f.field_name]}
-                  onChange={handleChange}
-                  error={errors[f.field_name]}
+                <Controller
+                  control={control}
+                  name={f.field_name}
+                  render={({ field: { onChange, value } }) => (
+                    <DynamicField
+                      field={f}
+                      value={value}
+                      onChange={onChange}
+                      error={errors[f.field_name]?.message as string}
+                    />
+                  )}
                 />
               ),
             }))}
@@ -186,11 +254,17 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
               key: f.field_name,
               colSpan: isMobile ? f.mobile_col_span : f.desktop_col_span,
               children: (
-                <DynamicField
-                  field={f}
-                  value={formValues[f.field_name]}
-                  onChange={handleChange}
-                  error={errors[f.field_name]}
+                <Controller
+                  control={control}
+                  name={f.field_name}
+                  render={({ field: { onChange, value } }) => (
+                    <DynamicField
+                      field={f}
+                      value={value}
+                      onChange={onChange}
+                      error={errors[f.field_name]?.message as string}
+                    />
+                  )}
                 />
               ),
             }))}
@@ -217,9 +291,8 @@ function groupByGroupName(
 
 function renderFields(
   fields: PageConfigField[],
-  formValues: Record<string, unknown>,
-  errors: Record<string, string | undefined>,
-  handleChange: (name: string, value: unknown) => void,
+  control: Control<FieldValues>,
+  errors: FieldErrors<FieldValues>
 ) {
   const grouped = groupByGroupName(fields);
   const groupKeys = Object.keys(grouped);
@@ -231,11 +304,17 @@ function renderFields(
           key: f.field_name,
           colSpan: 6,
           children: (
-            <DynamicField
-              field={f}
-              value={formValues[f.field_name]}
-              onChange={handleChange}
-              error={errors[f.field_name]}
+            <Controller
+              control={control}
+              name={f.field_name}
+              render={({ field: { onChange, value } }) => (
+                <DynamicField
+                  field={f}
+                  value={value}
+                  onChange={onChange}
+                  error={errors[f.field_name]?.message as string}
+                />
+              )}
             />
           ),
         }))}
@@ -254,11 +333,17 @@ function renderFields(
                 key: f.field_name,
                 colSpan: 6,
                 children: (
-                  <DynamicField
-                    field={f}
-                    value={formValues[f.field_name]}
-                    onChange={handleChange}
-                    error={errors[f.field_name]}
+                  <Controller
+                    control={control}
+                    name={f.field_name}
+                    render={({ field: { onChange, value } }) => (
+                      <DynamicField
+                        field={f}
+                        value={value}
+                        onChange={onChange}
+                        error={errors[f.field_name]?.message as string}
+                      />
+                    )}
                   />
                 ),
               }))}
@@ -272,11 +357,17 @@ function renderFields(
                 key: f.field_name,
                 colSpan: 6,
                 children: (
-                  <DynamicField
-                    field={f}
-                    value={formValues[f.field_name]}
-                    onChange={handleChange}
-                    error={errors[f.field_name]}
+                  <Controller
+                    control={control}
+                    name={f.field_name}
+                    render={({ field: { onChange, value } }) => (
+                      <DynamicField
+                        field={f}
+                        value={value}
+                        onChange={onChange}
+                        error={errors[f.field_name]?.message as string}
+                      />
+                    )}
                   />
                 ),
               }))}
