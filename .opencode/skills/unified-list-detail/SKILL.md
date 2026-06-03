@@ -21,20 +21,22 @@ Every page is **list + detail**. Desktop shows both side-by-side in a split-pane
 ## Architecture
 
 ```
-DynamicListDetailPage  (one component, all pages)
-├── useIsMobile()
+DynamicListDetailPage (configKey="admin.users")
+├── usePageConfig(configKey) → fetches PageConfig + PageConfigFields from DB
+├── useQuery(config.api_endpoint) → fetches records from API
+├── CardList (auto-derived from PageConfigField.is_column)
 ├── FormPageLayout (30/70 resizable split)
-│   ├── left:  CardList (toCard → compact 2-row cards)
+│   ├── left:  Card list
 │   └── right: DetailView
-│               ├── viewing  → renderDetail(record)
-│               ├── editing  → renderForm(record)
-│               ├── creating → renderForm(null)
+│               ├── viewing  → DynamicDetailPage (fields from config)
+│               ├── editing  → DynamicFormPage (fields from config)
+│               ├── creating → DynamicFormPage (fields from config)
 │               ├── idle     → "Select a record"
 │               └── actionSlots
-│                   ├── detailHeader  → extra buttons
-│                   ├── betweenSections → sub-lists
-│                   └── detailFooter  → extra forms
-└── Mobile: card list full-page → tap card → detail full-page with ← Back
+│                   ├── detailHeader  → extra buttons (deactivate/reactivate)
+│                   ├── betweenSections → sub-lists (company assignments)
+│                   └── detailFooter  → extra forms (password reset)
+└── Mobile: card list full-page → tap → detail full-page with ← Back
 ```
 
 ## Breakpoint Behaviour
@@ -117,55 +119,44 @@ Some pages need actions beyond standard CRUD (deactivate/reactivate, password re
 
 | Scenario | Approach |
 |----------|----------|
-| Standard CRUD (create, edit, delete, list) | `DynamicListDetailPage` with `configKey` — zero custom code |
-| Standard CRUD + extra action buttons | `DynamicListDetailPage` with `configKey` + `actionSlots` |
-| Completely custom card/detail/form | `DynamicListDetailPage` with callbacks (`toCard`, `renderDetail`, etc.) |
-| Singleton form (not list-detail) | Standalone page (e.g. `EmailSettingsPage`)
+| Standard CRUD (create, edit, delete, list) | `DynamicListDetailPage` with `configKey` — zero code |
+| Standard CRUD + custom action buttons | `DynamicListDetailPage` with `configKey` + `actionSlots` |
+| Read-only (e.g. audit log) | `DynamicListDetailPage` with `configKey` + `actionSlots.betweenSections` |
+| Singleton form (not list-detail) | Standalone page (e.g. `EmailSettingsPage`) |
 
 ## Shared Components
 
 ### `DynamicListDetailPage`
 - **Location**: `frontend/src/components/shared/DynamicListDetailPage.tsx`
-- Universal wrapper for ALL admin CRUD pages. Two modes:
+- **The single component for all admin CRUD pages.** Two patterns:
 
-  **1. Config-driven (recommended)** — zero custom code:
+  **Standard CRUD** — add a page config record + one route line. Zero React code:
   ```tsx
-  // Standard CRUD — loads fields from DB PageConfig
-  <DynamicListDetailPage configKey="admin.companies" />
-
-  // With custom action buttons
-  <DynamicListDetailPage
-    configKey="admin.users"
-    actionSlots={{
-      detailHeader: (user) => <DeactivateButton user={user} />,
-    }}
-  />
-  ```
-  - Auto-fetches page config from `/api/v1/core/page-configs/{configKey}/`
-  - Auto-derives card fields from `PageConfigField.is_column`
-  - Uses `DynamicDetailPage` (viewing) and `DynamicFormPage` (create/edit) internally
-  - Handles list fetch, create, delete, view switching automatically
-
-  **2. Callback mode** — for pages with completely custom content:
-  ```tsx
-  <DynamicListDetailPage<User>
-    title="Users"
-    records={users}
-    isLoading={isLoading}
-    toCard={(user) => ({ id: user.id, label: user.full_name, ... })}
-    renderDetail={(user) => <CustomDetail />}
-    renderForm={(user) => <CustomForm />}
-    onCreate={() => setShowForm(true)}
-    onEdit={(user) => initEdit(user)}
-    onDelete={(user) => handleDelete(user)}
-    actionSlots={{ ... }}
-  />
+  <Route path="companies" element={<DynamicListDetailPage configKey="admin.companies" />} />
   ```
 
-- Props: `configKey`, `title`, `toCard`, `records`, `isLoading`, `renderDetail`, `renderForm`, `onCreate`, `onEdit`, `onDelete`, `actionSlots`, `selectedRecord`, `onSelect`, `viewState`, `onViewStateChange`, `onRefresh`, `listHeader`
+  **With custom action slots** — import the page component (e.g. `UserManagementPage`) which wraps `DynamicListDetailPage`:
+  ```tsx
+  // UserManagementPage.tsx
+  export default function UserManagementPage() {
+    return (
+      <DynamicListDetailPage
+        configKey="admin.users"
+        actionSlots={{
+          detailHeader: (record) => <DeactivateButton record={record} />,
+          detailFooter: (record) => <PasswordResetForm record={record} />,
+        }}
+      />
+    );
+  }
+  ```
+
+- Props: `configKey` (required), `title` (optional override), `actionSlots`
+- Automatically fetches page config from DB, renders list/detail/form
+- Edit/Delete buttons shown only if page config has matching actions
 - Desktop: split-pane via `FormPageLayout` (30/70 resizable)
 - Mobile: full-page list → tap → full-page detail with ← Back
-- **Always use this component for any admin CRUD page. Use `configKey` when possible.**
+- **Always use this component. No exceptions.**
 
 ### Action Slots Pattern
 Custom actions are passed as render props rather than extending the base component:
@@ -194,12 +185,10 @@ Custom actions are passed as render props rather than extending the base compone
 
 ## Implementation Checklist
 
-When building or modifying a page to use this pattern:
+When building a new admin CRUD page:
 
-- [ ] Uses `DynamicListDetailPage` wrapper — no custom page component needed
-- [ ] For standard CRUD: only pass `toCard`, `renderDetail`, `renderForm` and action handlers
-- [ ] For custom actions: use `actionSlots` instead of custom page wrappers
-- [ ] List uses `toCard` for 2-row compact card layout
-- [ ] `useConfirm()` on all create, update, delete actions handled by `DynamicListDetailPage`
-- [ ] No `hover:` background on cards (only `cursor-pointer`)
+- [ ] Seed a `PageConfig` record (via `seed_page_configs` or page builder UI)
+- [ ] Add a route in `App.tsx`: `<Route path="..." element={<DynamicListDetailPage configKey="..." />} />`
+- [ ] For custom actions: create a wrapper component with `actionSlots`
+- [ ] `useConfirm()` on all destructive actions
 - [ ] No hardcoded Tailwind colors — use pyERP theme tokens (`primary-*`, `secondary-*`, etc.)
