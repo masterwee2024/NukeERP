@@ -117,29 +117,55 @@ Some pages need actions beyond standard CRUD (deactivate/reactivate, password re
 
 | Scenario | Approach |
 |----------|----------|
-| Read-only list + detail (e.g. audit log) | `DynamicListDetailPage` with `renderDetail` only |
-| Standard CRUD (create, edit, delete, list) | `DynamicListDetailPage` with `renderForm` — no custom code needed |
-| Standard CRUD + 1-2 extra buttons | `DynamicListDetailPage` with `actionSlots.detailHeader` |
-| Sub-list within detail (e.g. companies under a policy) | `DynamicListDetailPage` with `actionSlots.betweenSections` |
-| Non-standard field interactions (e.g. password reset) | `DynamicListDetailPage` with `actionSlots.detailFooter` |
+| Standard CRUD (create, edit, delete, list) | `DynamicListDetailPage` with `configKey` — zero custom code |
+| Standard CRUD + extra action buttons | `DynamicListDetailPage` with `configKey` + `actionSlots` |
+| Completely custom card/detail/form | `DynamicListDetailPage` with callbacks (`toCard`, `renderDetail`, etc.) |
+| Singleton form (not list-detail) | Standalone page (e.g. `EmailSettingsPage`)
 
 ## Shared Components
 
 ### `DynamicListDetailPage`
 - **Location**: `frontend/src/components/shared/DynamicListDetailPage.tsx`
-- Universal wrapper for the unified list-detail pattern
-- Provides split-pane shell (`FormPageLayout` on desktop), mobile full-page navigation with ← Back
-- Props:
-  - `title`, `records`, `isLoading` — list data
-  - `toCard` — converts record to `{ id, label, sublabel?, badge?, meta? }` for card rendering
-  - `renderDetail` — renders the read-only view for a record
-  - `renderForm` — renders the create/edit form
-  - `onCreate`, `onEdit`, `onDelete` — CRUD action handlers
-  - `actionSlots.detailHeader` — extra buttons in the detail header
-  - `actionSlots.betweenSections` — custom content between AccordionSections (e.g. sub-lists)
-  - `actionSlots.detailFooter` — content at the bottom of the detail view
-  - `onSelect`, `onViewStateChange` — external state control
-- **Always use this for any new admin CRUD page**
+- Universal wrapper for ALL admin CRUD pages. Two modes:
+
+  **1. Config-driven (recommended)** — zero custom code:
+  ```tsx
+  // Standard CRUD — loads fields from DB PageConfig
+  <DynamicListDetailPage configKey="admin.companies" />
+
+  // With custom action buttons
+  <DynamicListDetailPage
+    configKey="admin.users"
+    actionSlots={{
+      detailHeader: (user) => <DeactivateButton user={user} />,
+    }}
+  />
+  ```
+  - Auto-fetches page config from `/api/v1/core/page-configs/{configKey}/`
+  - Auto-derives card fields from `PageConfigField.is_column`
+  - Uses `DynamicDetailPage` (viewing) and `DynamicFormPage` (create/edit) internally
+  - Handles list fetch, create, delete, view switching automatically
+
+  **2. Callback mode** — for pages with completely custom content:
+  ```tsx
+  <DynamicListDetailPage<User>
+    title="Users"
+    records={users}
+    isLoading={isLoading}
+    toCard={(user) => ({ id: user.id, label: user.full_name, ... })}
+    renderDetail={(user) => <CustomDetail />}
+    renderForm={(user) => <CustomForm />}
+    onCreate={() => setShowForm(true)}
+    onEdit={(user) => initEdit(user)}
+    onDelete={(user) => handleDelete(user)}
+    actionSlots={{ ... }}
+  />
+  ```
+
+- Props: `configKey`, `title`, `toCard`, `records`, `isLoading`, `renderDetail`, `renderForm`, `onCreate`, `onEdit`, `onDelete`, `actionSlots`, `selectedRecord`, `onSelect`, `viewState`, `onViewStateChange`, `onRefresh`, `listHeader`
+- Desktop: split-pane via `FormPageLayout` (30/70 resizable)
+- Mobile: full-page list → tap → full-page detail with ← Back
+- **Always use this component for any admin CRUD page. Use `configKey` when possible.**
 
 ### Action Slots Pattern
 Custom actions are passed as render props rather than extending the base component:
