@@ -69,6 +69,7 @@ export default function FieldCustomizerPage() {
   const [search, setSearch] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [editPanel, setEditPanel] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Page list
   const { data: pages = [], isLoading: pagesLoading } = useQuery({
@@ -113,6 +114,7 @@ export default function FieldCustomizerPage() {
       await api.post(`/core/page-configs/${selectedPage}/fields/`, data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] }); closeEditPanel(); },
+    onError: (e: Error) => setSaveError(e.message),
   });
 
   const updateMutation = useMutation({
@@ -120,6 +122,7 @@ export default function FieldCustomizerPage() {
       await api.put(`/core/page-configs/${selectedPage}/fields/${id}/`, data);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["page-config", selectedPage] }); closeEditPanel(); },
+    onError: (e: Error) => setSaveError(e.message),
   });
 
   const deleteMutation = useMutation({
@@ -186,7 +189,14 @@ export default function FieldCustomizerPage() {
   }
 
   async function handleSave() {
+    setSaveError("");
     if (!fieldLabel.trim()) return;
+    if ((!selectedFieldData) && !fieldName.trim()) {
+      setSaveError("Field Name is required for custom fields.");
+      return;
+    }
+    const isSaving = addMutation.isPending || updateMutation.isPending;
+    if (isSaving) return;
     const data: Record<string, unknown> = {
       label: fieldLabel.trim(),
       field_type: fieldType,
@@ -201,7 +211,6 @@ export default function FieldCustomizerPage() {
       data.options_source = "static";
     }
     if (!selectedFieldData || selectedFieldData.is_custom) {
-      // Custom or new field — send field_name
       data.field_name = fieldName.trim();
       data.is_custom = true;
     }
@@ -209,7 +218,6 @@ export default function FieldCustomizerPage() {
       if (selectedFieldData.is_custom || isCustomField) {
         updateMutation.mutate({ id: selectedField!, data });
       } else {
-        // Standard field: only send mutable props
         const mutable: Record<string, unknown> = {
           label: data.label,
           required: data.required,
@@ -404,15 +412,21 @@ export default function FieldCustomizerPage() {
                 </div>
               )}
               <div className="flex gap-3 pt-2">
-                <button onClick={handleSave} disabled={!fieldLabel.trim()}
+                <button onClick={handleSave}
+                  disabled={!fieldLabel.trim() || addMutation.isPending || updateMutation.isPending}
                   className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50">
-                  Save
+                  {addMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
                 </button>
                 <button onClick={closeEditPanel}
                   className="rounded-lg border border-secondary-300 px-4 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50">
                   Cancel
                 </button>
               </div>
+              {saveError && (
+                <div className="rounded-md border border-danger-200 bg-danger-50 p-3 text-sm text-danger-700">
+                  {saveError}
+                </div>
+              )}
             </div>
           )}
         </div>
