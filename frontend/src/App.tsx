@@ -31,6 +31,8 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const UserListPage = lazy(() => import("./pages/admin/UserListPage"));
 const UserFormPage = lazy(() => import("./pages/admin/UserFormPage"));
+const PageList = lazy(() => import("./components/page-builder/PageList"));
+const PageBuilderLayout = lazy(() => import("./components/page-builder/PageBuilderLayout"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function LoadingSpinner() {
@@ -71,6 +73,9 @@ export default function App() {
                     <Route path="admin/users" element={<UserListPage />} />
                     <Route path="admin/users/new" element={<UserFormPage />} />
                     <Route path="admin/users/:id" element={<UserFormPage />} />
+                    <Route path="admin/page-builder" element={<PageList />} />
+                    <Route path="admin/page-builder/new" element={<PageBuilderLayout />} />
+                    <Route path="admin/page-builder/:pageKey" element={<PageBuilderLayout />} />
                   </Route>
                 </Route>
 

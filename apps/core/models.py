@@ -5,6 +5,8 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
 from apps.core.mixins.models import ConcurrencyModel
@@ -138,6 +140,231 @@ class UserCompany(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.user.email} → {self.company.name}"
+
+
+# ---------------------------------------------------------------------------
+# Approval Workflow Models (T016)
+# ---------------------------------------------------------------------------
+
+WORKFLOW_MODULE_CHOICES = [
+    ("financial", "Financial"),
+    ("scm", "Supply Chain"),
+    ("crm", "CRM"),
+    ("mrp", "MRP"),
+    ("hrm", "HRM"),
+]
+
+WORKFLOW_NODE_TYPE_CHOICES = [
+    ("start", "Start"),
+    ("end", "End"),
+    ("approve", "Approve"),
+    ("condition", "Condition"),
+    ("notify", "Notify"),
+    ("action", "Action"),
+]
+
+WORKFLOW_EXECUTION_STATUS_CHOICES = [
+    ("pending", "Pending"),
+    ("approved", "Approved"),
+    ("rejected", "Rejected"),
+    ("cancelled", "Cancelled"),
+    ("completed", "Completed"),
+]
+
+WORKFLOW_STEP_ACTION_CHOICES = [
+    ("approve", "Approve"),
+    ("reject", "Reject"),
+    ("return", "Return"),
+    ("delegate", "Delegate"),
+]
+
+WORKFLOW_STEP_STATUS_CHOICES = [
+    ("pending", "Pending"),
+    ("completed", "Completed"),
+    ("skipped", "Skipped"),
+]
+
+
+class WorkflowDefinition(ConcurrencyModel):
+    """Configurable approval workflow definition."""
+
+    name = models.CharField(max_length=200)
+    module = models.CharField(max_length=50, choices=WORKFLOW_MODULE_CHOICES)
+    document_type = models.CharField(
+        max_length=100,
+        help_text="e.g. PurchaseOrder, SalesInvoice, LeaveRequest",
+    )
+    version = models.PositiveIntegerField(default=1)
+    flow_data = models.JSONField(
+        default=dict, blank=True, help_text="React-flow nodes/edges JSON"
+    )
+    is_active = models.BooleanField(default=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="workflow_definitions",
+        help_text="Null = global template",
+    )
+    is_global_template = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="created_workflows"
+    )
+
+    class Meta:
+        db_table = "core_workflow_definition"
+        ordering = ["module", "document_type", "name"]
+        unique_together = [("name", "company", "version")]
+        verbose_name = "Workflow Definition"
+        verbose_name_plural = "Workflow Definitions"
+
+    def __str__(self):
+        return f"{self.name} v{self.version}"
+
+
+class WorkflowNode(ConcurrencyModel):
+    """Node within a workflow definition."""
+
+    workflow = models.ForeignKey(
+        WorkflowDefinition, on_delete=models.CASCADE, related_name="nodes"
+    )
+    node_id = models.CharField(
+        max_length=100, help_text="React-flow node ID (e.g. 'node_1')"
+    )
+    node_type = models.CharField(max_length=20, choices=WORKFLOW_NODE_TYPE_CHOICES)
+    label = models.CharField(max_length=200, blank=True, default="")
+    position_x = models.FloatField(default=0)
+    position_y = models.FloatField(default=0)
+    config = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "core_workflow_node"
+        unique_together = [("workflow", "node_id")]
+        ordering = ["workflow", "node_id"]
+        verbose_name = "Workflow Node"
+        verbose_name_plural = "Workflow Nodes"
+
+    def __str__(self):
+        return f"{self.workflow.name} → {self.label or self.node_id}"
+
+
+class WorkflowEdge(ConcurrencyModel):
+    """Edge connecting workflow nodes."""
+
+    workflow = models.ForeignKey(
+        WorkflowDefinition, on_delete=models.CASCADE, related_name="edges"
+    )
+    source_node_id = models.CharField(max_length=100)
+    target_node_id = models.CharField(max_length=100)
+    label = models.CharField(max_length=200, blank=True, default="")
+    condition = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "core_workflow_edge"
+        ordering = ["workflow", "source_node_id", "target_node_id"]
+        verbose_name = "Workflow Edge"
+        verbose_name_plural = "Workflow Edges"
+
+    def __str__(self):
+        return f"{self.workflow.name}: {self.source_node_id} → {self.target_node_id}"
+
+
+class WorkflowExecution(ConcurrencyModel):
+    """Runtime execution instance of a workflow."""
+
+    workflow = models.ForeignKey(
+        WorkflowDefinition, on_delete=models.CASCADE, related_name="executions"
+    )
+    document_type = models.CharField(max_length=100)
+    document_id = models.UUIDField()
+    current_node_id = models.CharField(max_length=100, blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=WORKFLOW_EXECUTION_STATUS_CHOICES,
+        default="pending",
+    )
+    requester = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="workflow_requests",
+        help_text="User who submitted for approval",
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="workflow_created_documents",
+        help_text="User who created the document",
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="workflow_executions"
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "core_workflow_execution"
+        ordering = ["-started_at"]
+        verbose_name = "Workflow Execution"
+        verbose_name_plural = "Workflow Executions"
+        indexes = [
+            models.Index(fields=["document_type", "document_id"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["company", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.workflow.name} ({self.document_type}:{self.document_id}) — {self.status}"
+
+
+class WorkflowExecutionStep(ConcurrencyModel):
+    """Individual step within a workflow execution."""
+
+    execution = models.ForeignKey(
+        WorkflowExecution, on_delete=models.CASCADE, related_name="steps"
+    )
+    node = models.ForeignKey(
+        WorkflowNode,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="execution_steps",
+    )
+    approver = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="approval_steps",
+    )
+    action = models.CharField(
+        max_length=20, choices=WORKFLOW_STEP_ACTION_CHOICES, blank=True, default=""
+    )
+    comment = models.TextField(blank=True, default="")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=WORKFLOW_STEP_STATUS_CHOICES,
+        default="pending",
+    )
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    delegated_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delegated_approval_steps",
+    )
+
+    class Meta:
+        db_table = "core_workflow_execution_step"
+        ordering = ["timestamp"]
+        verbose_name = "Workflow Execution Step"
+        verbose_name_plural = "Workflow Execution Steps"
+
+    def __str__(self):
+        return f"{self.execution} — {self.action or 'pending'} by {self.approver}"
 
 
 class Menu(ConcurrencyModel):
@@ -559,12 +786,8 @@ class RolePermission(ConcurrencyModel):
 class UserRole(ConcurrencyModel):
     """Junction table linking users to roles."""
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user_roles"
-    )
-    role = models.ForeignKey(
-        Role, on_delete=models.CASCADE, related_name="user_roles"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_roles")
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="user_roles")
 
     class Meta:
         db_table = "core_user_role"
@@ -596,3 +819,52 @@ class LoginHistory(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.user.email} @ {self.login_time}"
+
+
+class Attachment(ConcurrencyModel):
+    """Generic file attachment linked to any record via ContentType."""
+
+    ALLOWED_EXTENSIONS = {
+        "pdf",
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "doc",
+        "docx",
+        "xls",
+        "xlsx",
+    }
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+    content_type = models.ForeignKey(
+        ContentType, on_delete=models.CASCADE, related_name="attachments"
+    )
+    object_id = models.UUIDField(db_index=True)
+    content_object = GenericForeignKey("content_type", "object_id")
+
+    file = models.FileField(upload_to="attachments/%Y/%m/")
+    file_name = models.CharField(max_length=255)
+    file_size = models.PositiveIntegerField()
+    mime_type = models.CharField(max_length=100, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    uploaded_by = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="attachments",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_attachment"
+        ordering = ["-created_at"]
+        verbose_name = "Attachment"
+        verbose_name_plural = "Attachments"
+        indexes = [
+            models.Index(fields=["content_type", "object_id"]),
+        ]
+
+    def __str__(self):
+        return self.file_name
