@@ -7,6 +7,7 @@ from apps.core.api.auth_api import router as auth_router
 from apps.core.api.company_api import router as company_router
 from apps.core.api.email_settings_api import router as email_settings_router
 from apps.core.api.menu_api import router as menu_router
+from apps.core.api.numbering_api import router as numbering_router
 from apps.core.api.page_config_api import router as page_config_router
 from apps.core.api.rbac_api import router as rbac_router
 from apps.core.api.user_api import router as user_admin_router
@@ -23,4 +24,5 @@ router.add_router("/admin/", rbac_router, tags=["admin"])
 router.add_router("/admin/", user_admin_router, tags=["admin"])
 router.add_router("/admin/", workflow_admin_router, tags=["admin"])
 router.add_router("/admin/", email_settings_router, tags=["admin"])
+router.add_router("/admin/", numbering_router, tags=["admin"])
 router.add_router("/workflows/", workflow_execution_router, tags=["workflows"])

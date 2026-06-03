@@ -17,13 +17,20 @@ The user should provide:
 
 If not provided, ask for them.
 
+## Environment
+
+- **Shell**: PowerShell (Windows)
+- **gh path**: `"C:\Program Files\GitHub CLI\gh.exe"`
+- **Remote**: `origin` → `https://github.com/masterwee2024/NukeERP.git`
+- **Default branch**: `master` (protected — no direct pushes)
+
 ## Steps
 
 ### 1. Create Branch
 
-```bash
-git checkout main
-git pull
+```powershell
+git checkout master
+git pull origin master
 git checkout -b <type>/<task-number>-<short-title>
 ```
 
@@ -34,7 +41,7 @@ Examples:
 
 ### 2. Verify Status
 
-```bash
+```powershell
 git status
 git diff --stat
 ```
@@ -44,12 +51,12 @@ Show what files changed and ask user to confirm before committing.
 ### 3. Stage and Commit
 
 Stage all changes:
-```bash
+```powershell
 git add -A
 ```
 
 Commit with conventional format:
-```bash
+```powershell
 git commit -m "<type>(<scope>): <description>
 
 - Bullet point summary of changes
@@ -82,15 +89,16 @@ fix(auth): redirect to login on expired token (T008)
 
 ### 4. Push
 
-```bash
+```powershell
 git push -u origin <branch-name>
 ```
 
 ### 5. Create PR
 
-```bash
-gh pr create --title "<type>: <description> (TXXX)" --body "$(cat <<'EOF'
-## What
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" pr create `
+  --title "<type>: <description> (TXXX)" `
+  --body "## What
 <Brief description of what was built>
 
 ## How to test
@@ -102,30 +110,42 @@ gh pr create --title "<type>: <description> (TXXX)" --body "$(cat <<'EOF'
 - [ ] Lint clean (ruff + eslint)
 - [ ] Type check clean (mypy + tsc)
 - [ ] Responsive at 375px, 768px, 1440px
-- [ ] No `window.confirm()` — only `useConfirm()`
+- [ ] No \`window.confirm()\` — only \`useConfirm()\`
 - [ ] Concurrency control on updates
-- [ ] Company filter on queries
-
-Closes #<issue-number>
-EOF
-)"
+- [ ] Company filter on queries"
 ```
 
-If `gh` is not available, output the PR title and body for manual creation.
+### 6. Merge PR (solo-dev — `--admin` flag)
 
-### 6. Report
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" pr merge <number> --squash --delete-branch --admin
+```
+
+**IMPORTANT**: The `--admin` flag bypasses branch protection for solo developers (no one else to approve). The `--delete-branch` flag deletes the remote branch automatically.
+
+### 7. Sync Local
+
+```powershell
+git checkout master
+git pull origin master
+git branch -d <branch-name>   # delete local branch (if remote was auto-deleted)
+```
+
+### 8. Report
 
 After completion, output:
 
 ```
-✅ Branch: feat/T009-concurrency-control
-✅ Commit: feat(core): implement concurrency control (T009)
+✅ Branch: feat/TXXX-description
+✅ Commit: <type>(<scope>): <description>
 ✅ Pushed to origin
-✅ PR created: #<number>
+✅ PR #<number> created and merged
+✅ Branch deleted (remote + local)
 ```
 
 ## Error Handling
 
 - If branch exists, ask to switch to it or create with suffix
 - If push fails, check for upstream branch and suggest `git push --set-upstream`
-- If PR creation fails, output the title/body for manual creation
+- If `gh` is not found, output the PR title and body for manual creation
+- If `gh pr merge` fails with "review required", the `--admin` flag should fix it (verify protection settings)
