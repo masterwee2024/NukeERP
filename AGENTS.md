@@ -290,6 +290,7 @@ docs(T005): update task spec with menu API details
 - [ ] 2. **Check dependencies** — task spec lists what must be done first
 - [ ] 3. **Create branch** — DELEGATE to git agent: "create branch for TXXX"
 - [ ] 4. **Implement** — follow architecture conventions in this file
+- [ ] 4b. **If task has UI components** — DELEGATE to UI builder agent: "build page for XXX"
 - [ ] 5. **Write tests** — match coverage thresholds
 - [ ] 6. **Run checks** — DELEGATE to test-runner agent: "run tests"
 - [ ] 7. **Self-review** — DELEGATE to code-review agent: "review my changes"
@@ -378,6 +379,31 @@ All code reviews are delegated to the **review agent** (`.opencode/agent/code-re
 | LOW | Responsive | Missing `overflow-x-auto` |
 
 **Do NOT review code manually** — always use the agent for consistent coverage.
+
+### UI Builder Agent
+
+All admin CRUD and list-detail UI pages are delegated to the **UI builder agent** (`.opencode/agent/ui-builder.md`).
+
+**Trigger phrases:** "build page for", "create admin CRUD", "implement list-detail for", "create UI for", "build the frontend for"
+
+**When to use:**
+- Building a new admin CRUD page (e.g., numbering series, email settings, user management)
+- Implementing a module page that follows the list-detail pattern
+- Creating shared UI components (AccordionSection, FormPageLayout, etc.)
+- Adding routes and lazy imports for new pages
+
+**What it does:**
+1. Loads the `unified-list-detail` skill (`.opencode/skills/unified-list-detail/SKILL.md`)
+2. Reads `AGENTS.md` for pyERP conventions
+3. Checks existing shared components — creates missing ones
+4. Builds the page component following the unified list-detail pattern
+   - Desktop: split-pane (list left, detail right)
+   - Mobile: full-page list → tap → full-page detail with ← Back
+   - Same `viewContent` for both breakpoints
+5. Registers the route in `App.tsx`
+6. Verifies `npm run build` succeeds
+
+**Do NOT build admin CRUD pages manually** — always use the agent for consistent responsive design.
 
 ## Malaysian Compliance Gotchas
 
