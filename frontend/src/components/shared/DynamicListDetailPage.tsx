@@ -35,13 +35,19 @@ export default function DynamicListDetailPage({ configKey, title: titleProp, act
   // Fetch page config
   const { data: config, isLoading: configLoading } = usePageConfig(configKey);
 
+  // Flatten custom_fields into records
+  function mergeCustom(rec: Record<string, unknown>): Record<string, unknown> {
+    return { ...(rec.custom_fields as Record<string, unknown> ?? {}), ...rec, custom_fields: undefined };
+  }
+
   // Fetch records
   const endpoint = config ? `/${config.api_endpoint}/` : "";
   const { data: rawData, isLoading: recordsLoading } = useQuery({
     queryKey: [config?.api_endpoint],
     queryFn: async (): Promise<Record<string, unknown>[]> => {
-      const { data } = await api.get(endpoint);
-      return data?.results ?? data ?? [];
+      const { data: res } = await api.get(endpoint);
+      const list: Record<string, unknown>[] = res?.results ?? res ?? [];
+      return list.map(mergeCustom);
     },
     enabled: !!config,
   });
@@ -66,7 +72,7 @@ export default function DynamicListDetailPage({ configKey, title: titleProp, act
     queryKey: [config?.api_endpoint, selectedId],
     queryFn: async (): Promise<Record<string, unknown>> => {
       const { data } = await api.get(`${endpoint}${selectedId}/`);
-      return data;
+      return mergeCustom(data);
     },
     enabled: !!config && !!selectedId && view === "detail",
   });

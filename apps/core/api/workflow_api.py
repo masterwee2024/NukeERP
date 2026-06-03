@@ -507,7 +507,7 @@ def update_workflow(request, workflow_id: UUID, payload: WorkflowUpdateRequest):
         edges = update_data.pop("edges", None)
 
         for field, value in update_data.items():
-            setattr(workflow, field, value)
+            workflow.set_field(field, value)
 
         try:
             workflow.version += 1

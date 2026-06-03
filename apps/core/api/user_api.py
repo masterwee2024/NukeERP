@@ -142,7 +142,7 @@ def update_user(request, id: UUID, data: UserUpdate):
     update_data = data.model_dump(exclude_unset=True)
     role_ids = update_data.pop("role_ids", None)
     for field, value in update_data.items():
-        setattr(user, field, value)
+        user.set_field(field, value)
     user.save()
     if role_ids is not None:
         UserRole.objects.filter(user=user).delete()

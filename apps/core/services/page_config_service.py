@@ -38,7 +38,7 @@ def update_page_config(page_key: str, data: dict[str, Any]) -> PageConfig:
     """Update an existing page config."""
     config = PageConfig.objects.get(page_key=page_key)
     for key, value in data.items():
-        setattr(config, key, value)
+        config.set_field(key, value)
     config.save()
     return config
 

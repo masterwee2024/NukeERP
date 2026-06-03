@@ -203,7 +203,7 @@ def update_menu(request, menu_id: UUID, payload: MenuUpdateSchema):
 
     for field, value in update_data.items():
         if field != "updated_at":
-            setattr(menu, field, value)
+            menu.set_field(field, value)
 
     menu.save()
     return menu

@@ -162,7 +162,7 @@ class BaseCRUDRouter(SortMixin, FilterMixin):
             update_data = data.model_dump(exclude_unset=True)
             for field, value in update_data.items():
                 if field != "updated_at":
-                    setattr(item, field, value)
+                    item.set_field(field, value)
 
             try:
                 item.save()  # version auto-increments via ConcurrencyModel

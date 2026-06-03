@@ -289,7 +289,7 @@ def update_company(request, id: UUID, data: CompanyUpdate):
         except Company.DoesNotExist:
             raise HttpError(400, "Parent company not found") from None
     for field, value in update_data.items():
-        setattr(company, field, value)
+        company.set_field(field, value)
     company.save()
     return company
 

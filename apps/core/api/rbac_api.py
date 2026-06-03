@@ -133,7 +133,7 @@ def update_role(request, id: UUID, data: RoleUpdate):
         if Role.objects.filter(name=update_data["name"]).exclude(id=id).exists():
             raise HttpError(400, "Role with this name already exists")
     for field, value in update_data.items():
-        setattr(role, field, value)
+        role.set_field(field, value)
     role.save()
     return role
 

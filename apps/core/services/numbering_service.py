@@ -135,9 +135,15 @@ def update_policy(
                         "Record was modified by another user. Please reload and try again."
                     )
 
-        for field in ("document_type", "prefix", "date_format", "padding", "description"):
+        for field in (
+            "document_type",
+            "prefix",
+            "date_format",
+            "padding",
+            "description",
+        ):
             if field in data:
-                setattr(policy, field, data[field])
+                policy.set_field(field, data[field])
         policy.save()
         return policy
 
@@ -154,9 +160,9 @@ def delete_policy(policy_id: str) -> None:
 
 
 def get_company_assignments(policy_id: str) -> list[dict[str, Any]]:
-    qs = CompanyNumberingSeries.objects.filter(
-        policy_id=policy_id
-    ).select_related("company")
+    qs = CompanyNumberingSeries.objects.filter(policy_id=policy_id).select_related(
+        "company"
+    )
     return [
         {
             "id": str(a.id),

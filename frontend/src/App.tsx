@@ -30,8 +30,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
-const PageList = lazy(() => import("./components/page-builder/PageList"));
-const PageBuilderLayout = lazy(() => import("./components/page-builder/PageBuilderLayout"));
+const FieldCustomizerPage = lazy(() => import("./pages/admin/FieldCustomizerPage"));
 const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NumberingSeriesPage = lazy(() => import("./pages/admin/NumberingSeriesPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
@@ -73,9 +72,7 @@ export default function App() {
                     <Route path="hrm/*" element={<Dashboard />} />
                     <Route path="admin" element={<Dashboard />} />
                     <Route path="admin/users" element={<UserManagementPage />} />
-                    <Route path="admin/page-builder" element={<PageList />} />
-                    <Route path="admin/page-builder/new" element={<PageBuilderLayout />} />
-                    <Route path="admin/page-builder/:pageKey" element={<PageBuilderLayout />} />
+                    <Route path="admin/field-customizer" element={<FieldCustomizerPage />} />
                     <Route path="admin/settings" element={<EmailSettingsPage />} />
                     <Route path="admin/numbering-series" element={<NumberingSeriesPage />} />
                     <Route path="admin/audit-logs" element={<AuditLogPage />} />

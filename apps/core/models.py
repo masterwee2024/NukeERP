@@ -556,6 +556,10 @@ class PageConfigField(ConcurrencyModel):
         PageConfig, on_delete=models.CASCADE, related_name="fields"
     )
     field_name = models.CharField(max_length=100)
+    is_custom = models.BooleanField(
+        default=False,
+        help_text="True if this is a user-defined custom field stored in custom_fields JSONB",
+    )
     label = models.CharField(max_length=200)
     placeholder = models.CharField(max_length=200, blank=True, default="")
     help_text = models.CharField(max_length=500, blank=True, default="")
@@ -913,7 +917,9 @@ class CompanyNumberingSeries(ConcurrencyModel):
         related_name="company_assignments",
     )
     company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, related_name="numbering_assignments",
+        Company,
+        on_delete=models.CASCADE,
+        related_name="numbering_assignments",
     )
     next_number = models.PositiveIntegerField(default=1)
     reset_period = models.CharField(
@@ -1007,19 +1013,32 @@ class AuditLog(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     model_name = models.CharField(
-        max_length=200, db_index=True, help_text="Dotted model class name (e.g. 'core.Company')",
+        max_length=200,
+        db_index=True,
+        help_text="Dotted model class name (e.g. 'core.Company')",
     )
     record_id = models.CharField(
-        max_length=200, blank=True, default="", help_text="String representation of the record's PK",
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="String representation of the record's PK",
     )
     action = models.CharField(max_length=10, choices=ACTION_CHOICES, db_index=True)
     changes = models.JSONField(default=dict, blank=True)
     user = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs",
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
     )
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     company = models.ForeignKey(
-        Company, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs",
+        Company,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
     )
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
