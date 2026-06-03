@@ -332,61 +332,50 @@ export default function UserManagementPage() {
           </select>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-secondary-200">
-          <table className="min-w-full divide-y divide-secondary-200">
-            <thead className="bg-secondary-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Roles</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-secondary-400">
-                    <Loader2 className="inline h-5 w-5 animate-spin" />
-                  </td>
-                </tr>
-              ) : !users || users.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-secondary-400">No users found</td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user.id}
-                    onClick={() => handleRowClick(user)}
-                    className="cursor-pointer"
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-secondary-900">
-                      {user.full_name || "\u2014"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-secondary-600">{user.email}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-secondary-600">
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.map((r) => (
-                          <span key={r.id} className="rounded-full bg-primary-100 px-2 py-0.5 text-xs text-primary-700">
-                            {r.name}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        user.is_active
-                          ? "bg-success-100 text-success-700"
-                          : "bg-danger-100 text-danger-700"
-                      }`}>
-                        {user.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {isLoading ? (
+            <div className="py-8 text-center text-secondary-400">
+              <Loader2 className="inline h-5 w-5 animate-spin" />
+            </div>
+          ) : !users || users.length === 0 ? (
+            <div className="py-8 text-center text-secondary-400">No users found</div>
+          ) : (
+            users.map((user) => (
+              <div
+                key={user.id}
+                onClick={() => handleRowClick(user)}
+                className="cursor-pointer rounded-lg border border-secondary-200 bg-white p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-secondary-900">
+                    {user.full_name || "\u2014"}
+                  </span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    user.is_active
+                      ? "bg-success-100 text-success-700"
+                      : "bg-danger-100 text-danger-700"
+                  }`}>
+                    {user.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-xs text-secondary-500">
+                  <span>{user.email}</span>
+                  {user.roles.length > 0 && (
+                    <span className="flex gap-1">
+                      {user.roles.slice(0, 2).map((r) => (
+                        <span key={r.id} className="rounded-full bg-primary-100 px-1.5 py-0.5 text-xs text-primary-700">
+                          {r.name}
+                        </span>
+                      ))}
+                      {user.roles.length > 2 && (
+                        <span className="text-secondary-400">+{user.roles.length - 2}</span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
