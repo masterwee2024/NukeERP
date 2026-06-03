@@ -924,6 +924,78 @@ class NumberingSeries(ConcurrencyModel):
         return f"{self.prefix}{self.document_type}"
 
 
+class NumberingSeriesPolicy(ConcurrencyModel):
+    """Global numbering series template — shared across companies."""
+
+    document_type = models.CharField(
+        max_length=100, unique=True, help_text="e.g., invoice, purchase_order"
+    )
+    prefix = models.CharField(max_length=20, blank=True, default="")
+    date_format = models.CharField(
+        max_length=20, blank=True, default="", help_text="e.g., YYYYMM, YYMM"
+    )
+    padding = models.PositiveIntegerField(
+        default=6, help_text="Zero-padding for running number"
+    )
+    description = models.CharField(max_length=255, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_numbering_policy"
+        ordering = ["document_type"]
+        verbose_name = "Numbering Series Policy"
+        verbose_name_plural = "Numbering Series Policies"
+
+    def __str__(self):
+        return f"{self.prefix}{self.document_type}"
+
+
+class CompanyNumberingSeries(ConcurrencyModel):
+    """Per-company numbering series counter — assigned from a policy."""
+
+    RESET_PERIOD_CHOICES = [
+        ("yearly", "Yearly"),
+        ("monthly", "Monthly"),
+        ("never", "Never"),
+    ]
+
+    policy = models.ForeignKey(
+        NumberingSeriesPolicy,
+        on_delete=models.CASCADE,
+        related_name="company_assignments",
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="numbering_assignments",
+    )
+    next_number = models.PositiveIntegerField(default=1)
+    reset_period = models.CharField(
+        max_length=20, choices=RESET_PERIOD_CHOICES, default="yearly"
+    )
+    last_reset_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the counter was last reset"
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_company_numbering_series"
+        ordering = ["policy__document_type"]
+        verbose_name = "Company Numbering Series"
+        verbose_name_plural = "Company Numbering Series"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["policy", "company"],
+                name="uq_company_numbering_policy_company",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["company"]),
+            models.Index(fields=["policy"]),
+        ]
+
+    def __str__(self):
+        return f"{self.policy} @ {self.company.name if self.company else '?'}"
+
+
 class EmailSetting(ConcurrencyModel):
     """SMTP email configuration singleton."""
 
