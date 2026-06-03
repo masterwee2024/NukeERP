@@ -4,6 +4,8 @@ import uuid
 
 from django.db import models
 
+from apps.core.mixins.audit_mixin import AuditModelMixin
+
 
 class ConcurrencyError(Exception):
     """Raised when optimistic locking detects a conflict."""
@@ -21,7 +23,7 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
-class ConcurrencyModel(TimeStampedModel):
+class ConcurrencyModel(AuditModelMixin, TimeStampedModel):
     """Abstract base with concurrency control fields.
 
     Every model MUST inherit from this. Provides:
