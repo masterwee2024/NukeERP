@@ -130,6 +130,17 @@ def create_user(request, data: UserCreate):
     return user
 
 
+@router.get("/users/{id}/", response=UserOut)
+def get_user(request, id: UUID):
+    """Get a user by ID (superuser only)."""
+    if not request.auth.is_superuser:
+        raise HttpError(403, "Access denied")
+    try:
+        return User.objects.get(id=id)
+    except User.DoesNotExist:
+        raise HttpError(404, "User not found") from None
+
+
 @router.put("/users/{id}/", response=UserOut)
 def update_user(request, id: UUID, data: UserUpdate):
     """Update a user (superuser only)."""
