@@ -79,7 +79,7 @@ export default function DynamicListDetailPage({ configKey, title: titleProp, act
 
   // ── Helpers ───────────────────────────────────────
 
-  const columnFields = config?.fields.filter((f) => f.is_column) ?? [];
+  const columnFields = (config?.fields.filter((f) => f.is_column) ?? []).sort((a, b) => a.column_order - b.column_order);
 
   function toCard(record: Record<string, unknown>) {
     const cols = columnFields.map((f) => ({ name: f.field_name, val: String(record[f.field_name] ?? ""), type: f.field_type }));

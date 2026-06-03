@@ -28,7 +28,7 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
     queryKey: [config.api_endpoint, recordId],
     queryFn: async () => {
       if (!recordId) return {};
-      const { data } = await api.get(`/${config.api_endpoint}${recordId}/`);
+      const { data } = await api.get(`/${config.api_endpoint}/${recordId}/`);
       return data as Record<string, unknown>;
     },
     enabled: isEdit,
@@ -51,7 +51,7 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
         ...(isEdit && record?.updated_at ? { updated_at: record.updated_at } : {}),
       };
       if (isEdit) {
-        const { data } = await api.put(`/${config.api_endpoint}${recordId}/`, payload);
+        const { data } = await api.put(`/${config.api_endpoint}/${recordId}/`, payload);
         return data;
       } else {
         const { data } = await api.post(`/${config.api_endpoint}/`, payload);

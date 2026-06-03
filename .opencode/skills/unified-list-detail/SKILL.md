@@ -2,10 +2,9 @@
 name: unified-list-detail
 description: >-
   pyERP unified list+detail CRUD pattern. Every admin/master-data page uses a
-  single component that renders as a split-pane on desktop (list left, detail
-  right) and a full-page list-then-detail on mobile with a back button. Fused
-  into the Dynamic Page Config system so no per-page code is needed for
-  standard CRUD. Custom actions extend via action slots.
+  single `DynamicListDetailPage` with `configKey` — fetches `PageConfig` +
+  `PageConfigField` from DB, renders card list + detail/form. Custom actions
+  extend via `actionSlots`. Custom fields stored in `custom_fields` JSONB.
 license: MIT
 compatibility: opencode
 ---
@@ -14,19 +13,19 @@ compatibility: opencode
 
 ## Core Concept
 
-Every page is **list + detail**. Desktop shows both side-by-side in a split-pane. Mobile shows the list first; tapping a row navigates to a full-page detail view with a ← Back button to return to the list.
+Every page is **list + detail**. Desktop shows both side-by-side in a split-pane (30/70 resizable). Mobile shows the list first; tapping a row navigates to a full-page detail view with a ← Back button.
 
-**One component renders everywhere** — the same `viewContent` (read-only view, edit form, create form) is used for both mobile and desktop. The layout shell (`FormPageLayout`) handles the arrangement.
+**One component renders all pages** — `DynamicListDetailPage` with a `configKey` pointing to a `PageConfig` record in the database.
 
 ## Architecture
 
 ```
 DynamicListDetailPage (configKey="admin.users")
 ├── usePageConfig(configKey) → fetches PageConfig + PageConfigFields from DB
-├── useQuery(config.api_endpoint) → fetches records from API
+├── useQuery(api_endpoint) → fetches records from API, flattens custom_fields
 ├── CardList (auto-derived from PageConfigField.is_column)
 ├── FormPageLayout (30/70 resizable split)
-│   ├── left:  Card list
+│   ├── left:  Card list (2-row cards: label + meta[])
 │   └── right: DetailView
 │               ├── viewing  → DynamicDetailPage (fields from config)
 │               ├── editing  → DynamicFormPage (fields from config)
@@ -34,10 +33,29 @@ DynamicListDetailPage (configKey="admin.users")
 │               ├── idle     → "Select a record"
 │               └── actionSlots
 │                   ├── detailHeader  → extra buttons (deactivate/reactivate)
-│                   ├── betweenSections → sub-lists (company assignments)
+│                   ├── betweenSections → sub-lists (company assignments, diff)
 │                   └── detailFooter  → extra forms (password reset)
 └── Mobile: card list full-page → tap → detail full-page with ← Back
 ```
+
+## List Cards
+
+Every list is a vertical stack of compact 2-row cards:
+
+- **Row 1**: First column field value (entity name/label)
+- **Row 2**: Remaining column fields separated by `|` pipes. Badge-type fields render as colored badges.
+
+Cards use `cursor-pointer rounded-lg border border-secondary-200 bg-white p-3`.
+
+## Custom Fields (via JSONB)
+
+All models inherit `custom_fields` JSONB from `ConcurrencyModel` (`CustomFieldsMixin`).
+
+**Storage**: Unknown field names in API payloads route to `custom_fields` automatically via `model.set_field()` / `__init__` override.
+
+**Frontend merge**: `DynamicListDetailPage` flattens `custom_fields` into each record on fetch — form/detail components see a flat object and never know which fields are custom.
+
+**Field management**: Use the **Field Customizer** at Administration → Field Customizer. Form-based editor: select a page → add/edit/delete fields. Custom fields support types: text, number, decimal, date, datetime, select, multi_select, checkbox, toggle, textarea, email.
 
 ## Breakpoint Behaviour
 
@@ -49,71 +67,13 @@ DynamicListDetailPage (configKey="admin.users")
 
 ## Shared Components
 
-### `useIsMobile()` / `useIsWide()`
-- **Location**: `frontend/src/hooks/useIsMobile.ts`, `frontend/src/hooks/useIsWide.ts`
-- Simple `window.matchMedia("(max-width: 767px)")` listeners
-- Return boolean — used for navigation layout and button styling
-
-### List Cards (standard)
-Cards replace tables for all viewports. Every list is a vertical stack of compact 2-row cards:
-- **Row 1**: Entity name/label (left) · Status badge or key metric (right)
-- **Row 2**: Detail info (type, identifier, badges) separated by `|` pipes
-- Clicking a card opens the detail view
-- Cards use `cursor-pointer rounded-lg border border-secondary-200 bg-white p-3`
-
-### `AccordionSection`
-- **Location**: `frontend/src/components/shared/AccordionSection.tsx`
-- Controlled mode: `isOpen` prop + `onToggle` callback
-- Auto-collapse: only one section open at a time
-- Uses pyERP color tokens (`secondary-*`, `primary-*`)
-
-### `FormPageLayout`
-- **Location**: `frontend/src/components/shared/FormPageLayout.tsx`
-- Props: `leftPanel: { id, label, content }`, `rightPanel: { id, label, content }`
-- Desktop: flexbox split-pane with **drag-resizable divider**. Default **30% left / 70% right**, clamped 20-80%.
-- Divider: `w-1.5 cursor-col-resize bg-secondary-200 hover:bg-primary-400`, tracks `mousedown`/`mousemove`/`mouseup`
-- Tablet: stacked `space-y-4` (no split)
-- The same component is used by every page — no per-page split logic needed
-
-### `DynamicDetailView`
-- **Location**: `frontend/src/components/DynamicDetailView.tsx`
-- Renders a page config's fields as read-only (viewing) or editable (creating/editing)
-- Groups fields by `section` into `AccordionSection` components
-- Handles save, cancel, optimistic locking
-
-### `DynamicListDetailPage`
-- **Location**: `frontend/src/components/DynamicListDetailPage.tsx`
-- Orchestrator: loads page config, wires list selection to detail view
-- Manages state: `viewing`, `editing`, `showForm`, `activeSection`, navigation
-
-## Integration with Page Config
-
-The standard case uses the existing `PageConfig` + `PageConfigField` system:
-
-- `PageConfig.api_endpoint` → detail fetch/update URL
-- `PageConfigField.section` → group fields into `AccordionSection` panels
-- `PageConfigField.field_type` → render appropriate readonly or form input
-- `PageConfig.actions` → derive available CRUD operations
-
-**No schema changes needed** — the existing config fields already carry enough metadata.
-
-## Custom Actions & Non-Standard Pages
-
-Some pages need actions beyond standard CRUD (deactivate/reactivate, password reset, sub-list detail, diff view). These pages should:
-
-1. **Use `FormPageLayout` + `AccordionSection`** — same layout shell and card pattern
-2. **Adhere to the breakpoint behaviour** — desktop split, tablet stacked, mobile full-page
-3. **Add custom actions as buttons** in the right panel header (outside AccordionSection)
-4. **Use `useConfirm()`** for all destructive actions
-5. **Delegate to `DynamicListDetailPage` for standard CRUD** — only custom-write sections that differ
-
-### Custom Action Slots
-
-| Slot | Location | Used for |
-|------|----------|----------|
-| Detail header | Above AccordionSection | Edit, Delete, Deactivate, Approve |
-| Between sections | Between AccordionSections | Sub-lists (company assignments, roles) |
-| Field replacement | Inside AccordionSection | Password reset inline, diff view |
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `DynamicListDetailPage` | `components/shared/DynamicListDetailPage.tsx` | Main orchestrator — **use this for every admin page** |
+| `DynamicFormPage` | `components/dynamic/DynamicFormPage.tsx` | Renders create/edit form from config |
+| `DynamicDetailPage` | `components/dynamic/DynamicDetailPage.tsx` | Renders read-only detail from config |
+| `FormPageLayout` | `components/shared/FormPageLayout.tsx` | Desktop split-pane (30/70 resizable) |
+| `AccordionSection` | `components/shared/AccordionSection.tsx` | Collapsible section for detail views |
 
 ## When to Use Each Approach
 
@@ -123,72 +83,39 @@ Some pages need actions beyond standard CRUD (deactivate/reactivate, password re
 | Standard CRUD + custom action buttons | `DynamicListDetailPage` with `configKey` + `actionSlots` |
 | Read-only (e.g. audit log) | `DynamicListDetailPage` with `configKey` + `actionSlots.betweenSections` |
 | Singleton form (not list-detail) | Standalone page (e.g. `EmailSettingsPage`) |
+| Add custom fields | Field Customizer UI — no code changes needed |
 
-## Shared Components
+## Action Slots Pattern
 
-### `DynamicListDetailPage`
-- **Location**: `frontend/src/components/shared/DynamicListDetailPage.tsx`
-- **The single component for all admin CRUD pages.** Two patterns:
-
-  **Standard CRUD** — add a page config record + one route line. Zero React code:
-  ```tsx
-  <Route path="companies" element={<DynamicListDetailPage configKey="admin.companies" />} />
-  ```
-
-  **With custom action slots** — import the page component (e.g. `UserManagementPage`) which wraps `DynamicListDetailPage`:
-  ```tsx
-  // UserManagementPage.tsx
-  export default function UserManagementPage() {
-    return (
-      <DynamicListDetailPage
-        configKey="admin.users"
-        actionSlots={{
-          detailHeader: (record) => <DeactivateButton record={record} />,
-          detailFooter: (record) => <PasswordResetForm record={record} />,
-        }}
-      />
-    );
-  }
-  ```
-
-- Props: `configKey` (required), `title` (optional override), `actionSlots`
-- Automatically fetches page config from DB, renders list/detail/form
-- Edit/Delete buttons shown only if page config has matching actions
-- Desktop: split-pane via `FormPageLayout` (30/70 resizable)
-- Mobile: full-page list → tap → full-page detail with ← Back
-- **Always use this component. No exceptions.**
-
-### Action Slots Pattern
 Custom actions are passed as render props rather than extending the base component:
 
 ```tsx
-<DynamicListDetailPage<User>
-  title="Users"
-  records={users}
-  isLoading={isLoading}
-  toCard={(user) => ({ id: user.id, label: user.full_name, badge: {...} })}
-  renderDetail={(user) => <UserDetailView user={user} />}
-  renderForm={(user) => <UserForm user={user} roles={roles} />}
-  onCreate={() => initCreateForm()}
-  onEdit={(user) => initEditForm(user)}
-  onDelete={(user) => handleDelete(user)}
+<DynamicListDetailPage
+  configKey="admin.users"
   actionSlots={{
-    detailHeader: (user, refresh) => (
-      <DeactivateButton user={user} onDone={refresh} />
+    detailHeader: (record, refresh) => (
+      <DeactivateButton record={record} onDone={refresh} />
     ),
-    detailFooter: (user) => (
-      <PasswordResetForm user={user} />
+    detailFooter: (record) => (
+      <PasswordResetForm record={record} />
     ),
   }}
 />
 ```
 
+| Slot | Signature | Used for |
+|------|-----------|----------|
+| `detailHeader` | `(record, refresh) => ReactNode` | Edit, Delete, Deactivate, Reactivate buttons |
+| `betweenSections` | `(record) => ReactNode` | Sub-lists (company assignments, change diffs) |
+| `detailFooter` | `(record) => ReactNode` | Extra forms (password reset) |
+
 ## Implementation Checklist
 
 When building a new admin CRUD page:
 
-- [ ] Seed a `PageConfig` record (via `seed_page_configs` or page builder UI)
-- [ ] Add a route in `App.tsx`: `<Route path="..." element={<DynamicListDetailPage configKey="..." />} />`
+- [ ] Seed a `PageConfig` record (via seed script or API)
+- [ ] Add a route: `<Route path="..." element={<DynamicListDetailPage configKey="..." />} />`
 - [ ] For custom actions: create a wrapper component with `actionSlots`
 - [ ] `useConfirm()` on all destructive actions
-- [ ] No hardcoded Tailwind colors — use pyERP theme tokens (`primary-*`, `secondary-*`, etc.)
+- [ ] No hardcoded Tailwind colors — use pyERP theme tokens
+- [ ] Custom fields need no extra work — they're stored in JSONB, rendered from config
