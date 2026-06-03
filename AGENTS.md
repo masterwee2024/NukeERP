@@ -346,6 +346,12 @@ All git operations are delegated to the **git agent** (`.opencode/agent/git-pr.m
 
 **Commit format:** `<type>(<scope>): <description>` with bullet point body
 
+**Solo-dev workflow** (no reviewers — use `--admin` flag):
+```
+gh pr create --title "..." --body "..."
+gh pr merge --squash --delete-branch --admin
+```
+
 **CRITICAL**: After PR merge, always delete the branch: `git branch -D <branch>` — stale branches cause accidental overrides.
 
 ### Code Review Agent
