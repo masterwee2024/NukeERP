@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from django.apps import apps
 from django.db import transaction
 from django.db.models import Prefetch
 
@@ -68,6 +69,40 @@ def update_field(
 def remove_field(page_key: str, field_id: str) -> None:
     """Remove a field from a page config."""
     PageConfigField.objects.get(id=field_id, page_config__page_key=page_key).delete()
+
+
+def check_field_usage(page_key: str, field_id: str) -> dict:
+    """Check how many records use a custom field. Returns {used, count}."""
+    try:
+        field = PageConfigField.objects.get(id=field_id, page_config__page_key=page_key)
+    except PageConfigField.DoesNotExist:
+        return {"used": False, "count": 0}
+
+    if not field.is_custom:
+        return {"used": False, "count": 0, "note": "Standard fields cannot be deleted."}
+
+    config = field.page_config
+    model_name = config.entity_model
+    if not model_name:
+        return {"used": False, "count": 0}
+
+    # Resolve model name to Django model class
+    try:
+        Model = apps.get_model(model_name)
+    except LookupError:
+        for app_config in apps.get_app_configs():
+            try:
+                Model = app_config.get_model(model_name)
+            except LookupError:
+                continue
+        else:
+            return {"used": False, "count": 0}
+
+    if not hasattr(Model, "custom_fields"):
+        return {"used": False, "count": 0}
+
+    count = Model.objects.filter(custom_fields__has_key=field.field_name).count()
+    return {"used": count > 0, "count": count}
 
 
 def clone_config(page_key: str, new_page_key: str) -> PageConfig:

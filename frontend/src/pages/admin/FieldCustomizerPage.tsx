@@ -237,6 +237,17 @@ export default function FieldCustomizerPage() {
 
   async function handleDelete(field: PageConfigField) {
     if (!field.is_custom) return;
+    // Check if field has data in any record
+    const { data: usage } = await api.get(`/core/page-configs/${selectedPage}/fields/${field.id}/usage/`);
+    if (usage.used) {
+      await confirm({
+        title: "Cannot Delete",
+        message: `"${field.label}" has data in ${usage.count} record(s). Remove the data first before deleting the field.`,
+        variant: "danger",
+        confirmText: "OK",
+      });
+      return;
+    }
     const ok = await confirm({ title: "Delete Field", message: `Delete custom field "${field.label}"?`, variant: "danger", confirmText: "Delete" });
     if (ok) deleteMutation.mutate(field.id);
   }

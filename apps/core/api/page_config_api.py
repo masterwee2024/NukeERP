@@ -252,6 +252,12 @@ def update_field(
     return _field_to_dict(field)
 
 
+@router.get("/{page_key}/fields/{field_id}/usage/")
+def check_field_usage(request, page_key: str, field_id: str):
+    """Check if a custom field has data in any record."""
+    return page_config_service.check_field_usage(page_key, field_id)
+
+
 @router.delete("/{page_key}/fields/{field_id}/")
 def delete_field(request, page_key: str, field_id: str):
     """Delete a field."""
