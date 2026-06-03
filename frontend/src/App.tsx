@@ -34,6 +34,7 @@ const PageList = lazy(() => import("./components/page-builder/PageList"));
 const PageBuilderLayout = lazy(() => import("./components/page-builder/PageBuilderLayout"));
 const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NumberingSeriesPage = lazy(() => import("./pages/admin/NumberingSeriesPage"));
+const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function LoadingSpinner() {
@@ -77,6 +78,7 @@ export default function App() {
                     <Route path="admin/page-builder/:pageKey" element={<PageBuilderLayout />} />
                     <Route path="admin/settings" element={<EmailSettingsPage />} />
                     <Route path="admin/numbering-series" element={<NumberingSeriesPage />} />
+                    <Route path="admin/audit-logs" element={<AuditLogPage />} />
                   </Route>
                 </Route>
 

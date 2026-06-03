@@ -527,11 +527,19 @@ MENU_TREE = [
                 "module": "admin",
             },
             {
+                "name": "Audit Log",
+                "slug": "admin-audit-log",
+                "icon": "ClipboardList",
+                "url": "/app/admin/audit-logs",
+                "sort_order": 4,
+                "module": "admin",
+            },
+            {
                 "name": "Approvals",
                 "slug": "admin-approvals",
                 "icon": "CheckSquare",
                 "url": "/app/admin/approvals",
-                "sort_order": 4,
+                "sort_order": 5,
                 "module": "admin",
             },
             {
@@ -539,7 +547,7 @@ MENU_TREE = [
                 "slug": "admin-numbering",
                 "icon": "Hash",
                 "url": "/app/admin/numbering-series",
-                "sort_order": 5,
+                "sort_order": 6,
                 "module": "admin",
             },
             {
@@ -547,7 +555,7 @@ MENU_TREE = [
                 "slug": "admin-notifications",
                 "icon": "Bell",
                 "url": "/app/admin/notifications",
-                "sort_order": 6,
+                "sort_order": 7,
                 "module": "admin",
             },
             {
@@ -555,7 +563,7 @@ MENU_TREE = [
                 "slug": "admin-settings",
                 "icon": "Settings",
                 "url": "/app/admin/settings",
-                "sort_order": 7,
+                "sort_order": 8,
                 "module": "admin",
             },
         ],

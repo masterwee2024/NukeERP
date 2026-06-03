@@ -1,7 +1,8 @@
-"""Middleware — company context for API requests."""
+"""Middleware — company context for API requests and audit logging."""
 
 from django.utils.deprecation import MiddlewareMixin
 
+from apps.core.mixins.audit_mixin import clear_audit_context, set_audit_context
 from apps.core.models import Company
 
 
@@ -47,3 +48,13 @@ class CompanyMiddleware(MiddlewareMixin):
                         company = uc.company
 
         request.company = company
+
+        # Store audit context for AuditModelMixin
+        if hasattr(request, "user") and request.user.is_authenticated:
+            set_audit_context(request.user, request.META.get("REMOTE_ADDR"))
+        else:
+            set_audit_context(None, request.META.get("REMOTE_ADDR"))
+
+    def process_response(self, request, response):
+        clear_audit_context()
+        return response

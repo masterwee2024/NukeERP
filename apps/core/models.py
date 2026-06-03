@@ -1,5 +1,7 @@
 """Core models — User, Menu, MenuRole, and base models."""
 
+import uuid
+
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -972,3 +974,40 @@ class EmailSetting(ConcurrencyModel):
         if not obj:
             obj = cls.objects.create()
         return obj
+
+
+class AuditLog(models.Model):
+    """Immutable audit trail for all model changes."""
+
+    ACTION_CHOICES = [
+        ("create", "Create"),
+        ("update", "Update"),
+        ("delete", "Delete"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    model_name = models.CharField(
+        max_length=200, db_index=True, help_text="Dotted model class name (e.g. 'core.Company')",
+    )
+    record_id = models.CharField(
+        max_length=200, blank=True, default="", help_text="String representation of the record's PK",
+    )
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES, db_index=True)
+    changes = models.JSONField(default=dict, blank=True)
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs",
+    )
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    company = models.ForeignKey(
+        Company, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "core_audit_log"
+        ordering = ["-timestamp"]
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+
+    def __str__(self):
+        return f"{self.action} {self.model_name} #{self.record_id}"
