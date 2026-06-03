@@ -153,9 +153,12 @@ pyERP/
 - Critical paths (GL posting, payroll calc, SST computation) require tests before merge
 
 ### Git
-- Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `test:`
-- Squash-merge to `main`
-- Branch naming: `feat/description`, `fix/description`, `phase-N/description`
+- **Remote**: `origin` → `https://github.com/masterwee2024/NukeERP.git`
+- **Default branch**: `master` (protected — no direct pushes)
+- **Conventional Commits**: `feat:`, `fix:`, `chore:`, `docs:`, `test:`
+- **Merge strategy**: Squash-merge PRs to `master` (never commit directly)
+- **Branch naming**: `feat/description`, `fix/description`, `phase-N/description`
+- **After merge**: Delete the branch immediately — stale branches cause confusion and potential overrides
 
 ## Development Workflow
 
@@ -184,10 +187,10 @@ main                    ← production-ready, protected
 └── phase-1/financial   ← phase branches for grouped work
 ```
 
-- **Branch from**: `main` (always up-to-date)
-- **Merge to**: `main` via squash-merge
+- **Branch from**: `master` (always up-to-date)
+- **Merge to**: `master` via squash-merge
 - **Delete after merge**: yes
-- **Never force-push to main**: protected branch
+- **Never force-push to master**: protected branch
 
 ### Pull Request Process
 
@@ -343,7 +346,7 @@ All git operations are delegated to the **git agent** (`.opencode/agent/git-pr.m
 
 **Commit format:** `<type>(<scope>): <description>` with bullet point body
 
-**Do NOT create branches or commits manually** — always use the agent for consistent formatting.
+**CRITICAL**: After PR merge, always delete the branch: `git branch -D <branch>` — stale branches cause accidental overrides.
 
 ### Code Review Agent
 
