@@ -22,23 +22,23 @@ Every page is **list + detail**. Desktop shows both side-by-side in a split-pane
 ```
 DynamicListDetailPage  (one component, all pages)
 ├── useIsMobile()
-├── FormPageLayout
-│   ├── left:  DynamicList (table, row click → select)
-│   └── right: DynamicDetailView
+├── FormPageLayout (30/70 resizable split)
+│   ├── left:  CardList (compact 2-row cards, click → select)
+│   └── right: DetailView
 │               ├── viewing  → AccordionSection(s) + Edit button
 │               ├── editing  → form with AccordionSection(s)
 │               ├── creating → empty form with AccordionSection(s)
 │               └── idle     → "Select a record" message
-└── Mobile: list full-page → tap row → detail full-page with ← Back
+└── Mobile: card list full-page → tap card → detail full-page with ← Back
 ```
 
 ## Breakpoint Behaviour
 
 | Viewport | List | Detail/Form |
 |----------|------|-------------|
-| >1024px (wide) | `FormPageLayout` left panel (resizable grid `1fr 1fr`) | Right panel |
+| >1024px (wide) | `FormPageLayout` left panel (default 30%, drag-resizable 20-80%) | Right panel (default 70%) with drag divider |
 | 768-1023px (tablet) | Full-width stacked | Below the list |
-| <768px (mobile) | Full-page list | Full-page detail with ← Back header |
+| <768px (mobile) | Full-page list (cards) | Full-page detail with ← Back header |
 
 ## Shared Components
 
@@ -63,9 +63,10 @@ Cards replace tables for all viewports. Every list is a vertical stack of compac
 ### `FormPageLayout`
 - **Location**: `frontend/src/components/shared/FormPageLayout.tsx`
 - Props: `leftPanel: { id, label, content }`, `rightPanel: { id, label, content }`
-- Wide: CSS grid `grid-cols-2`
-- Tablet: stacked `grid-cols-1`
-- Mobile: hidden layout logic (page handles full-screen switching)
+- Desktop: flexbox split-pane with **drag-resizable divider**. Default **30% left / 70% right**, clamped 20-80%.
+- Divider: `w-1.5 cursor-col-resize bg-secondary-200 hover:bg-primary-400`, tracks `mousedown`/`mousemove`/`mouseup`
+- Tablet: stacked `space-y-4` (no split)
+- The same component is used by every page — no per-page split logic needed
 
 ### `DynamicDetailView`
 - **Location**: `frontend/src/components/DynamicDetailView.tsx`
