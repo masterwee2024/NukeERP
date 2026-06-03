@@ -3,6 +3,7 @@
 from ninja import Router
 
 from apps.core.api.attachment_api import router as attachment_router
+from apps.core.api.audit_api import router as audit_router
 from apps.core.api.auth_api import router as auth_router
 from apps.core.api.company_api import router as company_router
 from apps.core.api.email_settings_api import router as email_settings_router
@@ -25,4 +26,5 @@ router.add_router("/admin/", user_admin_router, tags=["admin"])
 router.add_router("/admin/", workflow_admin_router, tags=["admin"])
 router.add_router("/admin/", email_settings_router, tags=["admin"])
 router.add_router("/admin/", numbering_router, tags=["admin"])
+router.add_router("/admin/", audit_router, tags=["admin"])
 router.add_router("/workflows/", workflow_execution_router, tags=["workflows"])
