@@ -54,6 +54,7 @@ class PageConfigUpdateSchema(Schema):
 
 class PageConfigFieldCreateSchema(Schema):
     field_name: str
+    is_custom: bool = False
     label: str
     placeholder: str = ""
     help_text: str = ""
@@ -90,6 +91,7 @@ class PageConfigFieldCreateSchema(Schema):
 
 class PageConfigFieldUpdateSchema(Schema):
     label: str | None = None
+    is_custom: bool | None = None
     placeholder: str | None = None
     help_text: str | None = None
     field_type: str | None = None
