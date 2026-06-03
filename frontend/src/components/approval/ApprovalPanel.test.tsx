@@ -22,12 +22,21 @@ vi.mock("axios", () => {
 
 const mockContext: ExecutionContext = {
   execution_id: "exec-1",
-  workflow: { id: "wf-1", name: "Test Workflow", module: "financial", document_type: "PurchaseOrder" },
+  workflow: {
+    id: "wf-1",
+    name: "Test Workflow",
+    module: "financial",
+    document_type: "PurchaseOrder",
+  },
   document_type: "PurchaseOrder",
   document_id: "doc-1",
   document_data: null,
   status: "pending",
-  current_node: { node_id: "approve_1", label: "Manager Approval", node_type: "approve" },
+  current_node: {
+    node_id: "approve_1",
+    label: "Manager Approval",
+    node_type: "approve",
+  },
   requester: { id: "user-1", name: "Requester", email: "requester@test.com" },
   created_by: { id: "user-1", name: "Requester", email: "requester@test.com" },
   company: { id: "comp-1", name: "Test Corp" },
@@ -68,9 +77,7 @@ describe("ApprovalPanel", () => {
   });
 
   it("renders workflow name and status", () => {
-    renderWithProviders(
-      <ApprovalPanel context={mockContext} currentUserId="user-2" />
-    );
+    renderWithProviders(<ApprovalPanel context={mockContext} currentUserId="user-2" />);
 
     expect(screen.getByText("Approval Status")).toBeInTheDocument();
     expect(screen.getByText("Test Workflow")).toBeInTheDocument();
@@ -78,9 +85,7 @@ describe("ApprovalPanel", () => {
   });
 
   it("shows approve/reject buttons for pending approver", () => {
-    renderWithProviders(
-      <ApprovalPanel context={mockContext} currentUserId="user-2" />
-    );
+    renderWithProviders(<ApprovalPanel context={mockContext} currentUserId="user-2" />);
 
     expect(screen.getByText("Approve")).toBeInTheDocument();
     expect(screen.getByText("Reject")).toBeInTheDocument();
@@ -105,18 +110,14 @@ describe("ApprovalPanel", () => {
   });
 
   it("does not show approve/reject buttons for non-approver", () => {
-    renderWithProviders(
-      <ApprovalPanel context={mockContext} currentUserId="user-3" />
-    );
+    renderWithProviders(<ApprovalPanel context={mockContext} currentUserId="user-3" />);
 
     expect(screen.queryByText("Approve")).not.toBeInTheDocument();
     expect(screen.queryByText("Reject")).not.toBeInTheDocument();
   });
 
   it("shows approval history steps", () => {
-    renderWithProviders(
-      <ApprovalPanel context={mockContext} currentUserId="user-2" />
-    );
+    renderWithProviders(<ApprovalPanel context={mockContext} currentUserId="user-2" />);
 
     expect(screen.getByText("History")).toBeInTheDocument();
     expect(screen.getByText("Approver")).toBeInTheDocument();

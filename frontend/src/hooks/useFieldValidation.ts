@@ -73,7 +73,9 @@ export function validateField(
       if (!regex.test(strVal)) {
         return `Invalid format for ${field.label}`;
       }
-    } catch { /* invalid pattern */ }
+    } catch {
+      /* invalid pattern */
+    }
   }
 
   return undefined;

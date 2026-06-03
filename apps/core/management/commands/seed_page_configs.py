@@ -398,7 +398,6 @@ PAGE_CONFIGS = [
             },
         ],
     },
-
     # ── Admin: User Management ───────────────────────
     {
         "page_key": "admin.users",
@@ -408,20 +407,72 @@ PAGE_CONFIGS = [
         "entity_model": "User",
         "api_endpoint": "core/admin/users",
         "actions": [
-            {"label": "Create", "endpoint": "core/admin/users/", "method": "POST", "confirm": False},
-            {"label": "Edit", "endpoint": "core/admin/users/:id/", "method": "PUT", "confirm": False},
-            {"label": "Delete", "endpoint": "core/admin/users/:id/", "method": "DELETE", "confirm": True},
+            {
+                "label": "Create",
+                "endpoint": "core/admin/users/",
+                "method": "POST",
+                "confirm": False,
+            },
+            {
+                "label": "Edit",
+                "endpoint": "core/admin/users/:id/",
+                "method": "PUT",
+                "confirm": False,
+            },
+            {
+                "label": "Delete",
+                "endpoint": "core/admin/users/:id/",
+                "method": "DELETE",
+                "confirm": True,
+            },
         ],
         "fields": [
-            {"field_name": "email", "label": "Email", "field_type": "email", "required": True, "is_column": True, "column_order": 1, "sortable": True, "searchable": True},
-            {"field_name": "full_name", "label": "Name", "field_type": "text", "is_column": True, "column_order": 2, "sortable": True},
-            {"field_name": "is_active", "label": "Status", "field_type": "badge", "is_column": True, "column_order": 3, "filterable": True},
-            {"field_name": "first_name", "label": "First Name", "field_type": "text", "column_order": 4},
-            {"field_name": "last_name", "label": "Last Name", "field_type": "text", "column_order": 5},
-            {"field_name": "is_staff", "label": "Staff", "field_type": "checkbox", "column_order": 6},
+            {
+                "field_name": "email",
+                "label": "Email",
+                "field_type": "email",
+                "required": True,
+                "is_column": True,
+                "column_order": 1,
+                "sortable": True,
+                "searchable": True,
+            },
+            {
+                "field_name": "full_name",
+                "label": "Name",
+                "field_type": "text",
+                "is_column": True,
+                "column_order": 2,
+                "sortable": True,
+            },
+            {
+                "field_name": "is_active",
+                "label": "Status",
+                "field_type": "badge",
+                "is_column": True,
+                "column_order": 3,
+                "filterable": True,
+            },
+            {
+                "field_name": "first_name",
+                "label": "First Name",
+                "field_type": "text",
+                "column_order": 4,
+            },
+            {
+                "field_name": "last_name",
+                "label": "Last Name",
+                "field_type": "text",
+                "column_order": 5,
+            },
+            {
+                "field_name": "is_staff",
+                "label": "Staff",
+                "field_type": "checkbox",
+                "column_order": 6,
+            },
         ],
     },
-
     # ── Admin: Numbering Policies ────────────────────
     {
         "page_key": "admin.numbering-policies",
@@ -431,19 +482,64 @@ PAGE_CONFIGS = [
         "entity_model": "NumberingSeriesPolicy",
         "api_endpoint": "core/admin/numbering-policies",
         "actions": [
-            {"label": "Create", "endpoint": "core/admin/numbering-policies/", "method": "POST", "confirm": False},
-            {"label": "Edit", "endpoint": "core/admin/numbering-policies/:id/", "method": "PUT", "confirm": False},
-            {"label": "Delete", "endpoint": "core/admin/numbering-policies/:id/", "method": "DELETE", "confirm": True},
+            {
+                "label": "Create",
+                "endpoint": "core/admin/numbering-policies/",
+                "method": "POST",
+                "confirm": False,
+            },
+            {
+                "label": "Edit",
+                "endpoint": "core/admin/numbering-policies/:id/",
+                "method": "PUT",
+                "confirm": False,
+            },
+            {
+                "label": "Delete",
+                "endpoint": "core/admin/numbering-policies/:id/",
+                "method": "DELETE",
+                "confirm": True,
+            },
         ],
         "fields": [
-            {"field_name": "document_type", "label": "Document Type", "field_type": "text", "required": True, "is_column": True, "column_order": 1, "sortable": True},
-            {"field_name": "prefix", "label": "Prefix", "field_type": "text", "is_column": True, "column_order": 2},
-            {"field_name": "date_format", "label": "Date Format", "field_type": "text", "is_column": True, "column_order": 3},
-            {"field_name": "padding", "label": "Padding", "field_type": "number", "is_column": True, "column_order": 4},
-            {"field_name": "description", "label": "Description", "field_type": "text", "column_order": 5},
+            {
+                "field_name": "document_type",
+                "label": "Document Type",
+                "field_type": "text",
+                "required": True,
+                "is_column": True,
+                "column_order": 1,
+                "sortable": True,
+            },
+            {
+                "field_name": "prefix",
+                "label": "Prefix",
+                "field_type": "text",
+                "is_column": True,
+                "column_order": 2,
+            },
+            {
+                "field_name": "date_format",
+                "label": "Date Format",
+                "field_type": "text",
+                "is_column": True,
+                "column_order": 3,
+            },
+            {
+                "field_name": "padding",
+                "label": "Padding",
+                "field_type": "number",
+                "is_column": True,
+                "column_order": 4,
+            },
+            {
+                "field_name": "description",
+                "label": "Description",
+                "field_type": "text",
+                "column_order": 5,
+            },
         ],
     },
-
     # ── Admin: Audit Log ─────────────────────────────
     {
         "page_key": "admin.audit-logs",
@@ -454,16 +550,60 @@ PAGE_CONFIGS = [
         "api_endpoint": "core/admin/audit-logs",
         "actions": [],
         "fields": [
-            {"field_name": "model_name", "label": "Model", "field_type": "text", "is_column": True, "column_order": 1, "filterable": True},
-            {"field_name": "action", "label": "Action", "field_type": "text", "is_column": True, "column_order": 2, "filterable": True},
-            {"field_name": "user_name", "label": "User", "field_type": "text", "is_column": True, "column_order": 3, "filterable": True},
-            {"field_name": "record_id", "label": "Record ID", "field_type": "text", "column_order": 4},
-            {"field_name": "ip_address", "label": "IP", "field_type": "text", "column_order": 5},
-            {"field_name": "company_name", "label": "Company", "field_type": "text", "column_order": 6, "filterable": True},
-            {"field_name": "timestamp", "label": "Timestamp", "field_type": "datetime", "column_order": 7, "sortable": True},
+            {
+                "field_name": "model_name",
+                "label": "Model",
+                "field_type": "text",
+                "is_column": True,
+                "column_order": 1,
+                "filterable": True,
+            },
+            {
+                "field_name": "action",
+                "label": "Action",
+                "field_type": "text",
+                "is_column": True,
+                "column_order": 2,
+                "filterable": True,
+            },
+            {
+                "field_name": "user_name",
+                "label": "User",
+                "field_type": "text",
+                "is_column": True,
+                "column_order": 3,
+                "filterable": True,
+            },
+            {
+                "field_name": "record_id",
+                "label": "Record ID",
+                "field_type": "text",
+                "column_order": 4,
+            },
+            {
+                "field_name": "ip_address",
+                "label": "IP",
+                "field_type": "text",
+                "column_order": 5,
+            },
+            {
+                "field_name": "company_name",
+                "label": "Company",
+                "field_type": "text",
+                "column_order": 6,
+                "filterable": True,
+            },
+            {
+                "field_name": "timestamp",
+                "label": "Timestamp",
+                "field_type": "datetime",
+                "column_order": 7,
+                "sortable": True,
+            },
         ],
     },
 ]
+
 
 class Command(BaseCommand):
     help = "Seed page configurations for all ERP modules"

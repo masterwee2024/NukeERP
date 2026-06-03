@@ -86,7 +86,9 @@ class TestCompanyNumberingSeriesModel:
     def test_unique_constraint(self, policy, company, assignment):
         with pytest.raises(IntegrityError):
             CompanyNumberingSeries.objects.create(
-                policy=policy, company=company, next_number=1,
+                policy=policy,
+                company=company,
+                next_number=1,
             )
 
     def test_default_values(self, policy, company):
@@ -120,10 +122,16 @@ class TestNumberingService:
 
     def test_get_next_number_no_date_format(self, company, company_b):
         p = NumberingSeriesPolicy.objects.create(
-            document_type="employee", prefix="EMP-", date_format="", padding=4,
+            document_type="employee",
+            prefix="EMP-",
+            date_format="",
+            padding=4,
         )
         CompanyNumberingSeries.objects.create(
-            policy=p, company=company, next_number=1, reset_period="never",
+            policy=p,
+            company=company,
+            next_number=1,
+            reset_period="never",
         )
         from apps.core.services.numbering_service import get_next_number
 
@@ -138,7 +146,9 @@ class TestNumberingService:
 
     def test_get_next_number_raises_on_inactive_policy(self, company):
         p = NumberingSeriesPolicy.objects.create(
-            document_type="inactive_doc", prefix="INA-", is_active=False,
+            document_type="inactive_doc",
+            prefix="INA-",
+            is_active=False,
         )
         CompanyNumberingSeries.objects.create(policy=p, company=company)
         from apps.core.services.numbering_service import get_next_number
@@ -162,7 +172,9 @@ class TestNumberingService:
     def test_create_policy(self):
         from apps.core.services.numbering_service import create_policy
 
-        p = create_policy({"document_type": "po", "prefix": "PO-", "date_format": "YYYYMM"})
+        p = create_policy(
+            {"document_type": "po", "prefix": "PO-", "date_format": "YYYYMM"}
+        )
         assert p.document_type == "po"
         assert p.prefix == "PO-"
 
@@ -209,10 +221,15 @@ class TestNumberingYearReset:
         from apps.core.services.numbering_service import get_next_number
 
         p = NumberingSeriesPolicy.objects.create(
-            document_type="yearly_doc", prefix="YR-", date_format="YYYY",
+            document_type="yearly_doc",
+            prefix="YR-",
+            date_format="YYYY",
         )
         a = CompanyNumberingSeries.objects.create(
-            policy=p, company=company, next_number=100, reset_period="yearly",
+            policy=p,
+            company=company,
+            next_number=100,
+            reset_period="yearly",
         )
         # Simulate last reset was last year
         from django.db import connection
@@ -232,10 +249,15 @@ class TestNumberingYearReset:
         from apps.core.services.numbering_service import get_next_number
 
         p = NumberingSeriesPolicy.objects.create(
-            document_type="no_reset_doc", prefix="NR-", date_format="YYYY",
+            document_type="no_reset_doc",
+            prefix="NR-",
+            date_format="YYYY",
         )
         CompanyNumberingSeries.objects.create(
-            policy=p, company=company, next_number=50, reset_period="yearly",
+            policy=p,
+            company=company,
+            next_number=50,
+            reset_period="yearly",
             last_reset_at=datetime.datetime.now(datetime.UTC),
         )
         num = get_next_number("no_reset_doc", company.id)
@@ -354,6 +376,7 @@ class TestNumberingAPI:
 
     def test_update_policy_404(self, client, admin_user):
         import uuid
+
         from rest_framework_simplejwt.tokens import AccessToken
 
         token = AccessToken.for_user(admin_user)
@@ -394,7 +417,12 @@ class TestNumberingAPI:
         from rest_framework_simplejwt.tokens import AccessToken
 
         token = AccessToken.for_user(admin_user)
-        payload = {"next_number": 999, "updated_at": assignment.updated_at.isoformat() if assignment.updated_at else ""}
+        payload = {
+            "next_number": 999,
+            "updated_at": (
+                assignment.updated_at.isoformat() if assignment.updated_at else ""
+            ),
+        }
         response = client.put(
             f"/api/v1/core/admin/numbering-policies/{policy.id}/assign/{assignment.id}/",
             data=payload,

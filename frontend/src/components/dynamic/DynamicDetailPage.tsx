@@ -9,7 +9,10 @@ interface DynamicDetailPageProps {
   recordId?: string;
 }
 
-export default function DynamicDetailPage({ config, recordId }: DynamicDetailPageProps) {
+export default function DynamicDetailPage({
+  config,
+  recordId,
+}: DynamicDetailPageProps) {
   const queryClient = useQueryClient();
   const { confirm } = useConfirm();
   const { isMobile } = useViewport();
@@ -17,11 +20,12 @@ export default function DynamicDetailPage({ config, recordId }: DynamicDetailPag
   const actionMutation = useMutation({
     mutationFn: async ({ endpoint, method }: { endpoint: string; method: string }) => {
       const url = endpoint.replace(":id", recordId || "");
+      const payload = record?.updated_at ? { updated_at: record.updated_at } : {};
       if (method.toLowerCase() === "post") {
-        const { data } = await api.post(url);
+        const { data } = await api.post(url, payload);
         return data;
       }
-      const { data } = await api.put(url);
+      const { data } = await api.put(url, payload);
       return data;
     },
     onSuccess: () => {
@@ -66,7 +70,9 @@ export default function DynamicDetailPage({ config, recordId }: DynamicDetailPag
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-secondary-900">{config.page_title}</h2>
+        <h2 className="text-lg font-semibold text-secondary-900">
+          {config.page_title}
+        </h2>
         <div className="flex gap-2">
           {actionButtons.map((action) => (
             <button
@@ -78,18 +84,22 @@ export default function DynamicDetailPage({ config, recordId }: DynamicDetailPag
                   const confirmed = await confirm({
                     title: action.label,
                     message: `Are you sure you want to ${action.label.toLowerCase()}?`,
-                    variant: (action.variant as "danger" | "warning" | "info") || "info",
+                    variant:
+                      (action.variant as "danger" | "warning" | "info") || "info",
                   });
                   if (!confirmed) return;
                 }
-                actionMutation.mutate({ endpoint: action.endpoint, method: action.method });
+                actionMutation.mutate({
+                  endpoint: action.endpoint,
+                  method: action.method,
+                });
               }}
               className={`rounded-md px-4 py-2 text-sm font-medium ${
                 action.variant === "danger"
                   ? "bg-danger-600 text-white hover:bg-danger-700"
                   : action.variant === "warning"
-                  ? "bg-warning-600 text-white hover:bg-warning-700"
-                  : "bg-primary-600 text-white hover:bg-primary-700"
+                    ? "bg-warning-600 text-white hover:bg-warning-700"
+                    : "bg-primary-600 text-white hover:bg-primary-700"
               } ${actionMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {actionMutation.isPending ? "Processing..." : action.label}

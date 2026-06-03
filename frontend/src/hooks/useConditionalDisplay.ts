@@ -68,19 +68,26 @@ function evaluateCondition(
   return true;
 }
 
+export function evaluateVisibility(
+  fields: PageConfigField[],
+  formValues: Record<string, unknown>
+): VisibilityMap {
+  const visibility: VisibilityMap = {};
+  for (const field of fields) {
+    if (!field.show_when || Object.keys(field.show_when).length === 0) {
+      visibility[field.field_name] = true;
+    } else {
+      visibility[field.field_name] = evaluateCondition(field.show_when, formValues);
+    }
+  }
+  return visibility;
+}
+
 export function useConditionalDisplay(
   fields: PageConfigField[],
   formValues: Record<string, unknown>
 ): VisibilityMap {
   return useMemo(() => {
-    const visibility: VisibilityMap = {};
-    for (const field of fields) {
-      if (!field.show_when || Object.keys(field.show_when).length === 0) {
-        visibility[field.field_name] = true;
-      } else {
-        visibility[field.field_name] = evaluateCondition(field.show_when, formValues);
-      }
-    }
-    return visibility;
+    return evaluateVisibility(fields, formValues);
   }, [fields, formValues]);
 }

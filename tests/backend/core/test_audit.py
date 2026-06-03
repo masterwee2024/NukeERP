@@ -72,13 +72,19 @@ class TestAuditLogModel:
 
     def test_audit_log_ordering(self, admin_user):
         AuditLog.objects.create(
-            model_name="core.Test", record_id="1", action="create", user=admin_user,
+            model_name="core.Test",
+            record_id="1",
+            action="create",
+            user=admin_user,
         )
         import time
 
         time.sleep(0.01)
         log2 = AuditLog.objects.create(
-            model_name="core.Test", record_id="2", action="update", user=admin_user,
+            model_name="core.Test",
+            record_id="2",
+            action="update",
+            user=admin_user,
         )
         logs = list(AuditLog.objects.all())
         assert logs[0] == log2  # newest first (default ordering)
@@ -96,8 +102,18 @@ class TestAuditDiff:
         assert "email" not in result  # unchanged
 
     def test_compute_changes_excludes_metadata(self):
-        old = {"name": "X", "updated_at": "2024-01-01", "version": 1, "created_at": "2024-01-01"}
-        new = {"name": "Y", "updated_at": "2024-01-02", "version": 2, "created_at": "2024-01-01"}
+        old = {
+            "name": "X",
+            "updated_at": "2024-01-01",
+            "version": 1,
+            "created_at": "2024-01-01",
+        }
+        new = {
+            "name": "Y",
+            "updated_at": "2024-01-02",
+            "version": 2,
+            "created_at": "2024-01-01",
+        }
         result = compute_changes(old, new)
         assert "updated_at" not in result
         assert "version" not in result
@@ -138,7 +154,9 @@ class TestAuditMixinTracking:
     def test_create_tracks_audit_log(self, db):
         set_audit_context(None, "192.168.1.1")
         company = Company.objects.create(name="NewCo", code="NC")
-        logs = AuditLog.objects.filter(model_name="core.Company", record_id=str(company.id))
+        logs = AuditLog.objects.filter(
+            model_name="core.Company", record_id=str(company.id)
+        )
         assert logs.count() == 1
         log = logs.first()
         assert log.action == "create"
@@ -250,7 +268,9 @@ class TestAuditAPI:
         from rest_framework_simplejwt.tokens import AccessToken
 
         AuditLog.objects.create(
-            model_name="core.Test", record_id="1", action="create",
+            model_name="core.Test",
+            record_id="1",
+            action="create",
         )
         token = AccessToken.for_user(admin_user)
         response = client.get(
@@ -279,7 +299,9 @@ class TestAuditAPI:
     def test_list_filter_by_model_name(self, client, admin_user):
         from rest_framework_simplejwt.tokens import AccessToken
 
-        AuditLog.objects.create(model_name="core.Company", record_id="1", action="create")
+        AuditLog.objects.create(
+            model_name="core.Company", record_id="1", action="create"
+        )
         AuditLog.objects.create(model_name="core.User", record_id="1", action="create")
         token = AccessToken.for_user(admin_user)
         response = client.get(
@@ -294,7 +316,9 @@ class TestAuditAPI:
         from rest_framework_simplejwt.tokens import AccessToken
 
         log = AuditLog.objects.create(
-            model_name="core.Test", record_id="1", action="update",
+            model_name="core.Test",
+            record_id="1",
+            action="update",
             changes={"field": {"old": "A", "new": "B"}},
             ip_address="10.0.0.1",
         )

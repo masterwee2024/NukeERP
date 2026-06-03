@@ -33,7 +33,10 @@ export default function GridLayout({ items, mobileColSpan = 12 }: GridLayoutProp
   return (
     <div className="grid grid-cols-12 gap-4">
       {items.map((item) => {
-        const span = Math.min(isMobile ? Math.min(item.colSpan, mobileColSpan) : item.colSpan, 12);
+        const span = Math.min(
+          isMobile ? Math.min(item.colSpan, mobileColSpan) : item.colSpan,
+          12
+        );
         return (
           <div key={item.key} className={spanClassMap[span] || "col-span-12"}>
             {item.children}

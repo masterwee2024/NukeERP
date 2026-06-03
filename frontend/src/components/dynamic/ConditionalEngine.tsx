@@ -4,18 +4,20 @@ import {
   useConditionalDisplay,
   type VisibilityMap,
 } from "@/hooks/useConditionalDisplay";
+import { useWatch, type Control, type FieldValues } from "react-hook-form";
 
 interface ConditionalEngineProps {
   fields: PageConfigField[];
-  formValues: Record<string, unknown>;
+  control: Control<FieldValues>;
   children: (visibility: VisibilityMap) => ReactNode;
 }
 
 export default function ConditionalEngine({
   fields,
-  formValues,
+  control,
   children,
 }: ConditionalEngineProps) {
-  const visibility = useConditionalDisplay(fields, formValues);
+  const formValues = useWatch({ control }) as Record<string, unknown>;
+  const visibility = useConditionalDisplay(fields, formValues || {});
   return <>{children(visibility)}</>;
 }

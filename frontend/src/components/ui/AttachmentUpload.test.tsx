@@ -19,7 +19,11 @@ function createWrapper() {
   };
 }
 
-function makeFile(name: string, size: number = 1024, type: string = "application/pdf"): File {
+function makeFile(
+  name: string,
+  size: number = 1024,
+  type: string = "application/pdf"
+): File {
   return new File([new ArrayBuffer(size)], name, { type });
 }
 
@@ -206,7 +210,7 @@ describe("AttachmentList", () => {
       wrapper: createWrapper(),
     });
 
-    const links = document.querySelectorAll('a[download]');
+    const links = document.querySelectorAll("a[download]");
     expect(links.length).toBe(2);
     expect(links[0].getAttribute("href")).toBe("/api/v1/core/attachments/download/1/");
   });

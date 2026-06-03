@@ -39,9 +39,7 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -121,9 +119,7 @@ describe("useAttachments", () => {
 
     await result.current.remove("1");
 
-    expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
-      "/core/attachments/1/"
-    );
+    expect(mockAxiosInstance.delete).toHaveBeenCalledWith("/core/attachments/1/");
   });
 
   it("invalidates query cache after upload", async () => {

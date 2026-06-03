@@ -97,6 +97,8 @@ export function usePageConfig(pageKey: string) {
       return data;
     },
     enabled: !!pageKey,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -108,6 +110,8 @@ export function usePageConfigs(module?: string) {
       const { data } = await api.get(`/core/page-configs/${params}`);
       return data;
     },
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
