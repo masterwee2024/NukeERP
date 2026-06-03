@@ -872,58 +872,6 @@ class Attachment(ConcurrencyModel):
         return self.file_name
 
 
-class NumberingSeries(ConcurrencyModel):
-    """Configurable document numbering system."""
-
-    RESET_PERIOD_CHOICES = [
-        ("yearly", "Yearly"),
-        ("monthly", "Monthly"),
-        ("never", "Never"),
-    ]
-
-    document_type = models.CharField(
-        max_length=100, help_text="e.g., invoice, purchase_order, quotation"
-    )
-    prefix = models.CharField(max_length=20, blank=True, default="")
-    date_format = models.CharField(
-        max_length=20, blank=True, default="", help_text="e.g., YYYYMM, YYMM, or blank"
-    )
-    next_number = models.PositiveIntegerField(default=1)
-    reset_period = models.CharField(
-        max_length=20, choices=RESET_PERIOD_CHOICES, default="yearly"
-    )
-    padding = models.PositiveIntegerField(
-        default=6, help_text="Zero-padding for running number"
-    )
-    company = models.ForeignKey(
-        "core.Company", on_delete=models.CASCADE, related_name="numbering_series"
-    )
-    description = models.CharField(max_length=255, blank=True, default="")
-    is_active = models.BooleanField(default=True)
-    last_reset_at = models.DateTimeField(
-        null=True, blank=True, help_text="When the counter was last reset"
-    )
-
-    class Meta:
-        db_table = "core_numbering_series"
-        ordering = ["document_type"]
-        verbose_name = "Numbering Series"
-        verbose_name_plural = "Numbering Series"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["document_type", "company"],
-                name="uq_numbering_series_doc_type_company",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=["company"]),
-            models.Index(fields=["document_type"]),
-        ]
-
-    def __str__(self):
-        return f"{self.prefix}{self.document_type}"
-
-
 class NumberingSeriesPolicy(ConcurrencyModel):
     """Global numbering series template — shared across companies."""
 
