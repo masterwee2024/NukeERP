@@ -29,8 +29,7 @@ const RegisterPage = lazy(() => import("./pages/Register"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const UserListPage = lazy(() => import("./pages/admin/UserListPage"));
-const UserFormPage = lazy(() => import("./pages/admin/UserFormPage"));
+const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const PageList = lazy(() => import("./components/page-builder/PageList"));
 const PageBuilderLayout = lazy(() => import("./components/page-builder/PageBuilderLayout"));
 const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
@@ -72,9 +71,7 @@ export default function App() {
                     <Route path="mrp/*" element={<Dashboard />} />
                     <Route path="hrm/*" element={<Dashboard />} />
                     <Route path="admin" element={<Dashboard />} />
-                    <Route path="admin/users" element={<UserListPage />} />
-                    <Route path="admin/users/new" element={<UserFormPage />} />
-                    <Route path="admin/users/:id" element={<UserFormPage />} />
+                    <Route path="admin/users" element={<UserManagementPage />} />
                     <Route path="admin/page-builder" element={<PageList />} />
                     <Route path="admin/page-builder/new" element={<PageBuilderLayout />} />
                     <Route path="admin/page-builder/:pageKey" element={<PageBuilderLayout />} />
