@@ -69,15 +69,21 @@ def another_company(db):
 
 @pytest.fixture
 def auth_client(admin_user):
+    from rest_framework_simplejwt.tokens import AccessToken
+
     client = Client()
-    client.force_login(admin_user)
+    token = AccessToken.for_user(admin_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 
 @pytest.fixture
 def user_client(regular_user):
+    from rest_framework_simplejwt.tokens import AccessToken
+
     client = Client()
-    client.force_login(regular_user)
+    token = AccessToken.for_user(regular_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 

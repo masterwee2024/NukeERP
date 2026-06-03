@@ -1,4 +1,4 @@
-"""Company middleware — injects company context into every request."""
+"""Middleware — company context for API requests."""
 
 from django.utils.deprecation import MiddlewareMixin
 

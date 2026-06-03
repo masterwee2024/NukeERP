@@ -399,6 +399,7 @@ This project uses Graphify for knowledge graph generation. Before scanning the c
 9. **Ignoring field_config** — every form field must come from PageConfigField, not React code
 10. **Adding company_id to master data** — master data is global; use junction tables for assignment
 11. **Forgetting company filter** — master data queries must filter by company assignment, not company_id
+12. **API auth uses JWTAuth only** — `SessionAuth` was removed from the auth stack. All API calls must provide `Authorization: Bearer <token>`. Tests must use JWT tokens (via `AccessToken.for_user(user)`), not `force_login()`. CSRF is handled by Django's standard `CsrfViewMiddleware` — API routes are considered safe because they don't use session cookies.
 
 ## Industry Modules (Extensible Platform)
 

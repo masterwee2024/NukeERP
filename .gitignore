@@ -69,4 +69,5 @@ Thumbs.db
 
 # Graphify output (generated, not source)
 graphify-out/
+
 specs/

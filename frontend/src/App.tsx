@@ -33,6 +33,7 @@ const UserListPage = lazy(() => import("./pages/admin/UserListPage"));
 const UserFormPage = lazy(() => import("./pages/admin/UserFormPage"));
 const PageList = lazy(() => import("./components/page-builder/PageList"));
 const PageBuilderLayout = lazy(() => import("./components/page-builder/PageBuilderLayout"));
+const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function LoadingSpinner() {
@@ -76,6 +77,7 @@ export default function App() {
                     <Route path="admin/page-builder" element={<PageList />} />
                     <Route path="admin/page-builder/new" element={<PageBuilderLayout />} />
                     <Route path="admin/page-builder/:pageKey" element={<PageBuilderLayout />} />
+                    <Route path="admin/settings" element={<EmailSettingsPage />} />
                   </Route>
                 </Route>
 

@@ -868,3 +868,55 @@ class Attachment(ConcurrencyModel):
 
     def __str__(self):
         return self.file_name
+
+
+class EmailSetting(ConcurrencyModel):
+    """SMTP email configuration singleton."""
+
+    smtp_host = models.CharField(max_length=255, blank=True, default="")
+    smtp_port = models.PositiveIntegerField(default=587)
+    smtp_username = models.CharField(max_length=255, blank=True, default="")
+    smtp_password = models.CharField(max_length=500, blank=True, default="")
+    smtp_use_tls = models.BooleanField(default=True)
+    smtp_use_ssl = models.BooleanField(default=False)
+    from_email = models.EmailField(blank=True, default="")
+    from_name = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        db_table = "core_email_setting"
+        verbose_name = "Email Setting"
+        verbose_name_plural = "Email Settings"
+
+    def __str__(self):
+        return f"SMTP: {self.smtp_host}:{self.smtp_port}"
+
+    def save(self, *args, **kwargs):
+        # Encrypt password before storing
+        if self.smtp_password and not self.smtp_password.startswith("enc:"):
+            from django.core.signing import TimestampSigner
+
+            signer = TimestampSigner()
+            self.smtp_password = "enc:" + signer.sign(self.smtp_password)
+        super().save(*args, **kwargs)
+
+    def get_decrypted_password(self) -> str:
+        """Decrypt the stored password."""
+        if not self.smtp_password:
+            return ""
+        if self.smtp_password.startswith("enc:"):
+            from django.core.signing import SignatureExpired, TimestampSigner
+
+            try:
+                signer = TimestampSigner()
+                return signer.unsign(self.smtp_password[4:], max_age=None)
+            except (SignatureExpired, Exception):
+                return ""
+        return self.smtp_password
+
+    @classmethod
+    def load(cls) -> "EmailSetting":
+        """Get or create the singleton email config."""
+        obj = cls.objects.order_by("-updated_at").first()
+        if not obj:
+            obj = cls.objects.create()
+        return obj

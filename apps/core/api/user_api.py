@@ -40,7 +40,9 @@ class UserOut(Schema):
 
     @staticmethod
     def resolve_roles(obj):
-        return [{"id": str(r.id), "name": r.name} for r in rbac_service.get_user_roles(obj)]
+        return [
+            {"id": str(r.id), "name": r.name} for r in rbac_service.get_user_roles(obj)
+        ]
 
 
 class UserCreate(Schema):

@@ -10,9 +10,9 @@ def get_user_companies(user: User) -> list[Company]:
     if user.is_superuser:
         return list(Company.objects.filter(is_active=True).order_by("name"))
     return list(
-        Company.objects.filter(
-            company_users__user=user, is_active=True
-        ).order_by("name")
+        Company.objects.filter(company_users__user=user, is_active=True).order_by(
+            "name"
+        )
     )
 
 
@@ -26,7 +26,11 @@ def get_user_default_company(user: User) -> Company | None:
     4. First active company (for superusers)
     """
     try:
-        u = UserCompany.objects.filter(user=user, is_default=True).select_related("company").first()
+        u = (
+            UserCompany.objects.filter(user=user, is_default=True)
+            .select_related("company")
+            .first()
+        )
         if u:
             return u.company
     except UserCompany.DoesNotExist:

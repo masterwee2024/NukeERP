@@ -20,7 +20,10 @@ def admin_user(db):
 
 @pytest.fixture
 def auth_client(client, admin_user):
-    client.force_login(admin_user)
+    from rest_framework_simplejwt.tokens import AccessToken
+
+    token = AccessToken.for_user(admin_user)
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
     return client
 
 

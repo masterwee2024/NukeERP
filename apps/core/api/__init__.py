@@ -5,6 +5,7 @@ from ninja import Router
 from apps.core.api.attachment_api import router as attachment_router
 from apps.core.api.auth_api import router as auth_router
 from apps.core.api.company_api import router as company_router
+from apps.core.api.email_settings_api import router as email_settings_router
 from apps.core.api.menu_api import router as menu_router
 from apps.core.api.page_config_api import router as page_config_router
 from apps.core.api.rbac_api import router as rbac_router
@@ -21,4 +22,5 @@ router.add_router("/page-configs/", page_config_router, tags=["page-configs"])
 router.add_router("/admin/", rbac_router, tags=["admin"])
 router.add_router("/admin/", user_admin_router, tags=["admin"])
 router.add_router("/admin/", workflow_admin_router, tags=["admin"])
+router.add_router("/admin/", email_settings_router, tags=["admin"])
 router.add_router("/workflows/", workflow_execution_router, tags=["workflows"])
