@@ -1,16 +1,15 @@
-"""Seed default numbering series rules for all document types."""
+"""Seed default numbering policies and assign to all companies."""
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from apps.core.models import Company, NumberingSeries
+from apps.core.models import Company, CompanyNumberingSeries, NumberingSeriesPolicy
 
-DEFAULT_RULES = [
+DEFAULT_POLICIES = [
     {
         "document_type": "supplier_invoice",
         "prefix": "SI-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Supplier Invoice",
     },
@@ -18,7 +17,6 @@ DEFAULT_RULES = [
         "document_type": "customer_invoice",
         "prefix": "CI-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Customer Invoice",
     },
@@ -26,7 +24,6 @@ DEFAULT_RULES = [
         "document_type": "purchase_order",
         "prefix": "PO-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Purchase Order",
     },
@@ -34,7 +31,6 @@ DEFAULT_RULES = [
         "document_type": "sales_quotation",
         "prefix": "SQ-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Sales Quotation",
     },
@@ -42,7 +38,6 @@ DEFAULT_RULES = [
         "document_type": "sales_order",
         "prefix": "SO-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Sales Order",
     },
@@ -50,7 +45,6 @@ DEFAULT_RULES = [
         "document_type": "delivery_order",
         "prefix": "DO-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Delivery Order",
     },
@@ -58,7 +52,6 @@ DEFAULT_RULES = [
         "document_type": "journal_entry",
         "prefix": "JE-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Journal Entry",
     },
@@ -66,7 +59,6 @@ DEFAULT_RULES = [
         "document_type": "credit_note",
         "prefix": "CN-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Credit Note",
     },
@@ -74,7 +66,6 @@ DEFAULT_RULES = [
         "document_type": "debit_note",
         "prefix": "DN-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Debit Note",
     },
@@ -82,7 +73,6 @@ DEFAULT_RULES = [
         "document_type": "payment",
         "prefix": "PAY-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Payment",
     },
@@ -90,7 +80,6 @@ DEFAULT_RULES = [
         "document_type": "grn",
         "prefix": "GRN-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Goods Receipt Note",
     },
@@ -98,7 +87,6 @@ DEFAULT_RULES = [
         "document_type": "fixed_asset",
         "prefix": "FA-",
         "date_format": "",
-        "reset_period": "never",
         "padding": 6,
         "description": "Fixed Asset",
     },
@@ -106,15 +94,13 @@ DEFAULT_RULES = [
         "document_type": "employee",
         "prefix": "EMP-",
         "date_format": "",
-        "reset_period": "never",
-        "padding": 6,
+        "padding": 4,
         "description": "Employee",
     },
     {
         "document_type": "purchase_requisition",
         "prefix": "PR-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Purchase Requisition",
     },
@@ -122,7 +108,6 @@ DEFAULT_RULES = [
         "document_type": "rma",
         "prefix": "RMA-",
         "date_format": "YYYYMM",
-        "reset_period": "yearly",
         "padding": 6,
         "description": "Return Merchandise Authorization",
     },
@@ -130,59 +115,46 @@ DEFAULT_RULES = [
 
 
 class Command(BaseCommand):
-    help = "Seed default numbering series rules for all document types"
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            "--clear",
-            action="store_true",
-            help="Clear all existing series before seeding",
-        )
-        parser.add_argument(
-            "--company", type=int, help="Company ID to seed (default: all companies)"
-        )
+    help = "Seed default numbering policies and assign to all active companies"
 
     def handle(self, *args, **options):
-        if options["clear"]:
-            NumberingSeries.objects.all().delete()
-            self.stdout.write(self.style.WARNING("Cleared all numbering series."))
+        created_policies = 0
+        updated_policies = 0
+        total_assignments = 0
 
-        companies = Company.objects.all()
-        if options["company"]:
-            companies = companies.filter(id=options["company"])
-
-        if not companies:
-            self.stdout.write(
-                self.style.WARNING("No companies found. Seed a company first.")
+        for item in DEFAULT_POLICIES:
+            policy, created = NumberingSeriesPolicy.objects.update_or_create(
+                document_type=item["document_type"],
+                defaults={
+                    "prefix": item["prefix"],
+                    "date_format": item["date_format"],
+                    "padding": item["padding"],
+                    "description": item["description"],
+                    "is_active": True,
+                },
             )
-            return
+            if created:
+                created_policies += 1
+            else:
+                updated_policies += 1
 
-        created_count = 0
-        updated_count = 0
-
-        for company in companies:
-            for rule in DEFAULT_RULES:
-                obj, created = NumberingSeries.objects.update_or_create(
-                    document_type=rule["document_type"],
+            # Assign to all active companies
+            for company in Company.objects.filter(is_active=True):
+                _, was_created = CompanyNumberingSeries.objects.get_or_create(
+                    policy=policy,
                     company=company,
                     defaults={
-                        "prefix": rule["prefix"],
-                        "date_format": rule["date_format"],
-                        "reset_period": rule["reset_period"],
-                        "padding": rule["padding"],
-                        "description": rule["description"],
-                        "is_active": True,
+                        "next_number": 1,
+                        "reset_period": "yearly",
                         "last_reset_at": timezone.now(),
                     },
                 )
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+                if was_created:
+                    total_assignments += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done! Created: {created_count}, Updated: {updated_count} "
-                f"across {companies.count()} companies."
+                f"Done! Policies: {created_policies} created, {updated_policies} updated. "
+                f"Company assignments: {total_assignments} created."
             )
         )
