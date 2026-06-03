@@ -175,38 +175,36 @@ export default function NumberingSeriesPage() {
         {success && (
           <div className="mb-4 rounded-lg bg-success-50 p-3 text-sm text-success-700">{success}</div>
         )}
-        <div className="overflow-x-auto rounded-lg border border-secondary-200 bg-white">
-          <table className="min-w-full divide-y divide-secondary-200">
-            <thead className="bg-secondary-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Document Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Prefix</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-secondary-500">Format</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-secondary-500">Next #</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary-100">
-              {seriesList.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-secondary-500">
-                    No numbering series configured.
-                  </td>
-                </tr>
-              )}
-              {seriesList.map((series) => (
-                <tr
-                  key={series.id}
-                  className="cursor-pointer"
-                  onClick={() => handleRowClick(series)}
-                >
-                  <td className="px-4 py-3 text-sm font-medium text-secondary-900">{series.document_type}</td>
-                  <td className="px-4 py-3 text-sm text-secondary-700">"{series.prefix}"</td>
-                  <td className="px-4 py-3 text-sm text-secondary-700">{series.date_format || "—"}</td>
-                  <td className="px-4 py-3 text-right text-sm text-secondary-700">{series.next_number}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {seriesList.length === 0 ? (
+            <div className="py-8 text-center text-sm text-secondary-500">
+              No numbering series configured.
+            </div>
+          ) : (
+            seriesList.map((series) => (
+              <div
+                key={series.id}
+                className="cursor-pointer rounded-lg border border-secondary-200 bg-white p-3"
+                onClick={() => handleRowClick(series)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-secondary-900">{series.document_type}</span>
+                  <span className="text-xs text-secondary-500">Next: {series.next_number}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-xs text-secondary-500">
+                  <span>"{series.prefix}"</span>
+                  <span className="text-secondary-300">|</span>
+                  <span>{series.date_format || "—"}</span>
+                  <span className="text-secondary-300">|</span>
+                  <span>{series.company_name}</span>
+                  <span className="text-secondary-300">|</span>
+                  <span className="rounded-full bg-secondary-100 px-1.5 py-0.5 text-xs capitalize text-secondary-600">
+                    {series.reset_period}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );

@@ -47,6 +47,13 @@ DynamicListDetailPage  (one component, all pages)
 - Simple `window.matchMedia("(max-width: 767px)")` listeners
 - Return boolean — used for navigation layout and button styling
 
+### List Cards (standard)
+Cards replace tables for all viewports. Every list is a vertical stack of compact 2-row cards:
+- **Row 1**: Entity name/label (left) · Status badge or key metric (right)
+- **Row 2**: Detail info (type, identifier, badges) separated by `|` pipes
+- Clicking a card opens the detail view
+- Cards use `cursor-pointer rounded-lg border border-secondary-200 bg-white p-3`
+
 ### `AccordionSection`
 - **Location**: `frontend/src/components/shared/AccordionSection.tsx`
 - Controlled mode: `isOpen` prop + `onToggle` callback
@@ -101,6 +108,6 @@ When building or modifying a page to use this pattern:
 - [ ] Page config record exists with proper `api_endpoint` and `fields`
 - [ ] Fields are grouped via `section` for AccordionSection layout
 - [ ] `useConfirm()` on all create, update, delete actions
-- [ ] `overflow-x-auto` on table container
-- [ ] No `hover:` background on table rows (only `cursor-pointer`)
+- [ ] Cards (not tables) for list view — 2-row compact layout
+- [ ] No `hover:` background on cards (only `cursor-pointer`)
 - [ ] No hardcoded Tailwind colors — use pyERP theme tokens (`primary-*`, `secondary-*`, etc.)
