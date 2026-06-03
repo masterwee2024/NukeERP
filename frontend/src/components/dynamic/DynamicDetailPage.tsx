@@ -32,7 +32,7 @@ export default function DynamicDetailPage({ config, recordId }: DynamicDetailPag
   const { data: record, isLoading } = useQuery({
     queryKey: [config.api_endpoint, recordId],
     queryFn: async () => {
-      const { data } = await api.get(`/${config.api_endpoint}${recordId}/`);
+      const { data } = await api.get(`/${config.api_endpoint}/${recordId}/`);
       return data as Record<string, unknown>;
     },
     enabled: !!recordId,
