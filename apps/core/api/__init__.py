@@ -14,6 +14,7 @@ from apps.core.api.messaging_api import router as messaging_router
 from apps.core.api.notification_api import approvals_router
 from apps.core.api.notification_api import router as notification_router
 from apps.core.api.numbering_api import router as numbering_router
+from apps.core.api.opening_balance_api import router as opening_balance_router
 from apps.core.api.page_config_api import router as page_config_router
 from apps.core.api.policy_api import router as policy_router
 from apps.core.api.rbac_api import router as rbac_router
@@ -40,3 +41,4 @@ router.add_router("/approval-center/", approval_center_router, tags=["approval-c
 router.add_router("/messaging/", messaging_router, tags=["messaging"])
 router.add_router("/admin/", policy_router, tags=["admin"])
 router.add_router("/import/", import_router, tags=["import"])
+router.add_router("/opening-balance/", opening_balance_router, tags=["opening-balance"])
