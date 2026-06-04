@@ -11,6 +11,7 @@ from apps.core.api.email_settings_api import router as email_settings_router
 from apps.core.api.import_api import router as import_router
 from apps.core.api.menu_api import router as menu_router
 from apps.core.api.messaging_api import router as messaging_router
+from apps.core.api.module_api import router as module_router
 from apps.core.api.notification_api import approvals_router
 from apps.core.api.notification_api import router as notification_router
 from apps.core.api.numbering_api import router as numbering_router
@@ -42,3 +43,4 @@ router.add_router("/messaging/", messaging_router, tags=["messaging"])
 router.add_router("/admin/", policy_router, tags=["admin"])
 router.add_router("/import/", import_router, tags=["import"])
 router.add_router("/opening-balance/", opening_balance_router, tags=["opening-balance"])
+router.add_router("/platform/modules/", module_router, tags=["platform"])

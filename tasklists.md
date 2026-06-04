@@ -26,10 +26,10 @@
 | T008 | Authentication System | Custom `User` model (email login). JWT auth via simplejwt. Login/register/forgot-password/reset-password pages. Token refresh. | T006 | B, F, E | [docs/t008.md](docs/t008.md) |
 | T009 | API Layer Foundation | Django Ninja configured with `/api/docs` Swagger. Base CRUD pattern, error response schema, pagination, sorting, filtering utilities. API versioning (`/api/v1/`). Concurrency control (TimestampedModel, ConcurrencyModel, 409 handling). | T001 | B | [docs/t009.md](docs/t009.md) |
 | T009a | Document Attachments | Global attachment service — any record can have file attachments. Upload, download, preview, delete. Used by invoices, employees, items, etc. | T009 | B | [docs/t009a.md](docs/t009a.md) |
-| T009b | Module Plugin Interface | Module registration system, signal bus for inter-module communication, extension point documentation, module dependency management. | T009 | B | [docs/t009b.md](docs/t009b.md) |
+| T009b | Module Plugin Interface | Module registration system, signal bus for inter-module communication, extension point documentation, module dependency management. | T009 | B | **Done** — [docs/t009b.md](docs/t009b.md) |
 | T009c | Industry Template Engine | Load/install industry templates from JSON. Configure modules, menus, workflows, GL accounts for specific industry. | T009b | B | [docs/t009c.md](docs/t009c.md) |
 | T009d | Data Migration Framework | CSV import engine, column mapping, validation, import history, rollback, downloadable templates for all entities. | T009 | B, E | **Done** — [docs/t009d.md](docs/t009d.md) |
-| T009e | Opening Balance Migration | Migration wizard for GL, AP, AR, inventory, asset opening balances. Step-by-step with validation. Creates opening entries. | T009d | B, E | [docs/t009e.md](docs/t009e.md) |
+| T009e | Opening Balance Migration | Migration wizard for GL, AP, AR, inventory, asset opening balances. Step-by-step with validation. Creates opening entries. | T009d | B, E | **Done** — [docs/t009e.md](docs/t009e.md) |
 | T009f | Transaction Migration | Import pending (open POs, SOs) and historical transactions. Fresh start vs full migration option. | T009d, T009e | B, E | [docs/t009f.md](docs/t009f.md) |
 
 ---
