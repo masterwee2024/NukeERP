@@ -1,0 +1,266 @@
+import { useState, useCallback, useRef } from "react";
+import {
+  ReactFlow,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Controls,
+  Background,
+  MiniMap,
+  type Node,
+  type Edge,
+  type Connection,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import NodePalette from "@/components/workflow/NodePalette";
+
+const initialNodes: Node[] = [
+  {
+    id: "start-1",
+    type: "default",
+    position: { x: 250, y: 50 },
+    data: { label: "Start" },
+    style: { background: "#22c55e", color: "#fff", border: "2px solid #16a34a", borderRadius: "50%", width: 60, height: 60, display: "flex", alignItems: "center", justifyContent: "center" },
+  },
+];
+
+const initialEdges: Edge[] = [];
+
+const nodeTypeStyles: Record<string, { bg: string; border: string; shape: string }> = {
+  start: { bg: "#22c55e", border: "#16a34a", shape: "circle" },
+  end: { bg: "#ef4444", border: "#dc2626", shape: "circle" },
+  approve: { bg: "#3b82f6", border: "#2563eb", shape: "diamond" },
+  condition: { bg: "#eab308", border: "#ca8a04", shape: "hexagon" },
+  notify: { bg: "#a855f7", border: "#9333ea", shape: "triangle" },
+  action: { bg: "#6b7280", border: "#4b5563", shape: "square" },
+};
+
+function createNode(nodeType: string, x: number, y: number): Node {
+  const style = nodeTypeStyles[nodeType] || nodeTypeStyles.action;
+  return {
+    id: `${nodeType}-${Date.now()}`,
+    type: "default",
+    position: { x, y },
+    data: { label: nodeType.charAt(0).toUpperCase() + nodeType.slice(1) },
+    style: {
+      background: style.bg,
+      color: "#fff",
+      border: `2px solid ${style.border}`,
+      borderRadius: "8px",
+      padding: "10px 20px",
+      minWidth: 120,
+    },
+  };
+}
+
+export default function WorkflowDesignerPage() {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [name, setName] = useState("New Workflow");
+  const [module, setModule] = useState("");
+  const [docType, setDocType] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const onConnect = useCallback(
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges],
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const nodeType = event.dataTransfer.getData("application/reactflow");
+      if (!nodeType || !reactFlowWrapper.current) return;
+
+      const bounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = {
+        x: event.clientX - bounds.left - 60,
+        y: event.clientY - bounds.top - 20,
+      };
+
+      const newNode = createNode(nodeType, position.x, position.y);
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [setNodes],
+  );
+
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    setSelectedNode(node);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
+
+  const handleSave = async () => {
+    if (!name.trim() || !module || !docType) {
+      setMessage("Name, Module, and Document Type are required");
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const api = (await import("@/lib/api")).default;
+      const flowData = { nodes, edges };
+      const { data } = await api.post("/core/admin/workflows/", {
+        name,
+        module,
+        document_type: docType,
+        flow_data: flowData,
+        nodes: nodes.map((n) => ({
+          node_id: n.id,
+          node_type: n.id.split("-")[0],
+          label: n.data.label as string,
+          position_x: n.position.x,
+          position_y: n.position.y,
+          config: {},
+        })),
+        edges: edges.map((e) => ({
+          source_node_id: e.source,
+          target_node_id: e.target,
+          label: e.label || "",
+          condition: {},
+        })),
+      });
+      setMessage(`Saved! Workflow ID: ${data.id?.slice(0, 8) || "created"}`);
+    } catch (err: any) {
+      setMessage(err?.response?.data?.detail || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const nodeTypes = {};
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)]">
+      <NodePalette />
+
+      <div className="flex flex-1 flex-col">
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 border-b border-secondary-200 bg-white px-4 py-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="rounded border border-secondary-300 px-2 py-1 text-sm focus:border-primary-500 focus:outline-none"
+            placeholder="Workflow name"
+          />
+          <select
+            value={module}
+            onChange={(e) => setModule(e.target.value)}
+            className="rounded border border-secondary-300 px-2 py-1 text-sm"
+          >
+            <option value="">Module</option>
+            <option value="procurement">Procurement</option>
+            <option value="financial">Financial</option>
+            <option value="hrm">HRM</option>
+            <option value="crm">CRM</option>
+            <option value="scm">SCM</option>
+          </select>
+          <input
+            value={docType}
+            onChange={(e) => setDocType(e.target.value)}
+            className="rounded border border-secondary-300 px-2 py-1 text-sm focus:border-primary-500 focus:outline-none"
+            placeholder="Document type (e.g. PurchaseOrder)"
+          />
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded bg-primary-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+          {message && (
+            <span className={`text-xs ${message.includes("Saved") ? "text-green-600" : "text-red-600"}`}>
+              {message}
+            </span>
+          )}
+        </div>
+
+        {/* React Flow Canvas */}
+        <div ref={reactFlowWrapper} className="flex-1">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            nodeTypes={nodeTypes}
+            fitView
+          >
+            <Controls />
+            <Background />
+            <MiniMap />
+          </ReactFlow>
+        </div>
+      </div>
+
+      {/* Properties Panel */}
+      {selectedNode && (
+        <div className="w-64 border-l border-secondary-200 bg-white p-4 overflow-y-auto">
+          <h3 className="mb-3 text-sm font-semibold text-secondary-800">Properties</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-secondary-500">Node ID</label>
+              <p className="text-sm text-secondary-700">{selectedNode.id}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-500">Label</label>
+              <input
+                value={selectedNode.data.label as string}
+                onChange={(e) => {
+                  setNodes((nds) =>
+                    nds.map((n) => (n.id === selectedNode.id ? { ...n, data: { ...n.data, label: e.target.value } } : n)),
+                  );
+                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } });
+                }}
+                className="mt-1 w-full rounded border border-secondary-300 px-2 py-1 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-500">X</label>
+              <input
+                type="number"
+                value={Math.round(selectedNode.position.x)}
+                onChange={(e) => {
+                  const x = Number(e.target.value);
+                  setNodes((nds) =>
+                    nds.map((n) => (n.id === selectedNode.id ? { ...n, position: { ...n.position, x } } : n)),
+                  );
+                }}
+                className="mt-1 w-full rounded border border-secondary-300 px-2 py-1 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-500">Y</label>
+              <input
+                type="number"
+                value={Math.round(selectedNode.position.y)}
+                onChange={(e) => {
+                  const y = Number(e.target.value);
+                  setNodes((nds) =>
+                    nds.map((n) => (n.id === selectedNode.id ? { ...n, position: { ...n.position, y } } : n)),
+                  );
+                }}
+                className="mt-1 w-full rounded border border-secondary-300 px-2 py-1 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -42,8 +42,8 @@ export default function MessagingPage() {
         {showChannels && (
           <div className="fixed inset-0 bg-black/30 lg:hidden" onClick={() => setShowChannels(false)} />
         )}
-        <div className={`relative z-50 w-72 border-r border-secondary-200 bg-white lg:w-full ${
-          showChannels ? "" : "hidden lg:block"
+        <div className={`relative w-72 border-r border-secondary-200 bg-white lg:w-full ${
+          showChannels ? "z-50" : "hidden lg:block"
         }`}>
           <ChannelList
             channels={channels}
