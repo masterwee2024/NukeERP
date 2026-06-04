@@ -176,3 +176,102 @@ class AuditModelMixin(models.Model):
             ip_address=get_audit_ip(),
             company=getattr(self, "company", None),
         )
+
+
+class AuditConfigMixin(models.Model):
+    """Mixin that auto-tracks configuration changes on config models.
+
+    Usage:
+        class WorkflowDefinition(AuditConfigMixin, ConcurrencyModel):
+            ...
+
+    Logs changes as 'config' category in the audit log.
+    Does NOT extend AuditModelMixin's CRUD behavior — only config-specific logging.
+    """
+
+    _audit_config_enabled = True
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        if is_new or not getattr(self, "_audit_config_enabled", True):
+            super().save(*args, **kwargs)
+            if is_new and getattr(self, "_audit_config_enabled", True):
+                self._create_config_audit_entry("create")
+            return
+
+        if self.pk:
+            try:
+                old_instance = self.__class__.objects.get(pk=self.pk)
+                old_fields = get_field_dict(old_instance)
+            except self.__class__.DoesNotExist:
+                old_fields = {}
+
+        super().save(*args, **kwargs)
+
+        if not getattr(self, "_audit_config_enabled", True):
+            return
+
+        new_fields = get_field_dict(self)
+        changes = compute_changes(old_fields, new_fields) if old_fields else {}
+        if changes:
+            from apps.core.models import AuditLog
+
+            AuditLog.objects.create(
+                model_name=get_model_name(self),
+                record_id=str(self.pk),
+                action="update",
+                category="config",
+                changes=changes,
+                user=get_audit_user(),
+                ip_address=get_audit_ip(),
+                company=getattr(self, "company", None),
+            )
+
+    def delete(self, *args, **kwargs):
+        if not getattr(self, "_audit_config_enabled", True):
+            super().delete(*args, **kwargs)
+            return
+
+        old_fields = get_field_dict(self)
+        record_pk = str(self.pk)
+        super().delete(*args, **kwargs)
+        changes = {
+            k: {"old": v, "new": None}
+            for k, v in old_fields.items()
+            if k not in AUDIT_EXCLUDE_FIELDS
+        }
+        from apps.core.models import AuditLog
+
+        AuditLog.objects.create(
+            model_name=get_model_name(self),
+            record_id=record_pk,
+            action="delete",
+            category="config",
+            changes=changes,
+            user=get_audit_user(),
+            ip_address=get_audit_ip(),
+            company=getattr(self, "company", None),
+        )
+
+    def _create_config_audit_entry(self, action: str):
+        from apps.core.models import AuditLog
+
+        fields = get_field_dict(self)
+        changes = {
+            k: {"old": None, "new": v}
+            for k, v in fields.items()
+            if k not in AUDIT_EXCLUDE_FIELDS
+        }
+        AuditLog.objects.create(
+            model_name=get_model_name(self),
+            record_id=str(self.pk),
+            action=action,
+            category="config",
+            changes=changes,
+            user=get_audit_user(),
+            ip_address=get_audit_ip(),
+            company=getattr(self, "company", None),
+        )

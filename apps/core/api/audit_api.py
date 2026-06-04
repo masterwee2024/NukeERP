@@ -16,7 +16,9 @@ class AuditLogOut(Schema):
     model_name: str
     record_id: str = ""
     action: str
+    category: str = "crud"
     changes: dict = {}
+    metadata: dict = {}
     user_name: str = ""
     ip_address: str | None = None
     company_name: str = ""

@@ -416,6 +416,7 @@ def process_action(
         execution.status = "rejected"
         execution.completed_at = timezone.now()
         execution.save(update_fields=["status", "completed_at"])
+        _log_approval_audit(execution, "reject", approver, ip_address)
         return {
             "execution_id": str(execution.id),
             "status": "rejected",
@@ -439,6 +440,14 @@ def process_action(
             node=current_node,
             approver=step.delegated_to,
             status="pending",
+        )
+
+        _log_approval_audit(
+            execution,
+            "delegate",
+            approver,
+            ip_address,
+            {"delegated_to": str(delegated_to_id)},
         )
 
         # Notify the delegate
@@ -490,6 +499,8 @@ def process_action(
                 execution.save(update_fields=[])
         else:
             _advance_to_next_node(execution, current_node)
+
+        _log_approval_audit(execution, "approve", approver, ip_address)
 
         return {
             "execution_id": str(execution.id),
@@ -792,3 +803,33 @@ def _model_to_dict(obj: Model) -> dict:
         else:
             result[name] = value
     return result
+
+
+def _log_approval_audit(
+    execution: WorkflowExecution,
+    action: str,
+    user: User,
+    ip_address: str | None = None,
+    extra_metadata: dict | None = None,
+) -> None:
+    """Log an approval action to the audit log."""
+    try:
+        from apps.core.services.advanced_audit_service import log_approval_action
+
+        metadata = {
+            "document_type": execution.document_type,
+            "document_id": str(execution.document_id),
+        }
+        if extra_metadata:
+            metadata.update(extra_metadata)
+
+        log_approval_action(
+            execution_id=execution.id,
+            action=action,
+            user=user,
+            ip_address=ip_address,
+            company=execution.company,
+            metadata=metadata,
+        )
+    except Exception as exc:
+        logger.warning("Failed to log approval audit for %s: %s", execution.id, exc)

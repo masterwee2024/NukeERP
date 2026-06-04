@@ -2,6 +2,10 @@
 
 > Compact reference for AI agents working in this codebase. Every line answers: "Would an agent likely miss this without help?"
 
+## CRITICAL: Check Graphify First
+
+**Agents and sub-agents MUST NOT scan the codebase directly before reading the graphify knowledge graph.** Always check `graphify-out/graph.json` or `graphify-out/GRAPH_REPORT.md` first for module-level community detection and architecture context. Scanning the full codebase without the graph is wasteful and prohibited. If the graph does not exist, run `/graphify <path>` to build it before proceeding.
+
 ---
 
 ## Quick Commands
@@ -79,9 +83,11 @@ pyERP/
   2. Execute — perform the API call
   3. Success dialog — show what was done, user clicks "OK"
   4. Error dialog — show `err.message` or "contact system administrator", user clicks "OK"
+- **Use `useAction()` hook** from `@/components/ui/ConfirmDialog` — it implements the full cycle in one call. Do NOT write manual try/catch/confirm pattern.
 - **No silent success**, **no silent error**, **no inline flash messages**, **no multi-state button labels**
 - If a CRUD action is missing the full dialog cycle (confirm + result), it is a bug
 - Variants: `danger` (delete), `warning` (post/void), `info` (submit/reload)
+- Dialog size: `max-w-sm` (384px) — set in ConfirmDialog component, do not override
 
 ### Multi-Company Architecture
 - **Master data is global** — Items, Customers, Vendors, Employees, COA have NO company_id FK

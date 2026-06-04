@@ -1,5 +1,6 @@
 """Attachment service — business logic for file attachments."""
 
+import logging
 import mimetypes
 import os
 
@@ -7,6 +8,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
 from apps.core.models import Attachment, User
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "gif", "doc", "docx", "xls", "xlsx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -74,6 +77,10 @@ def upload_attachment(
         description=description,
         uploaded_by=user,
     )
+
+    _log_file_audit(
+        "upload", file.name, user, company=getattr(user, "current_company", None)
+    )
     return attachment
 
 
@@ -99,12 +106,30 @@ def soft_delete_attachment(attachment_id: str) -> Attachment | None:
         return None
     attachment.is_active = False
     attachment.save(update_fields=["is_active", "updated_at", "version"])
+    _log_file_audit("delete", attachment.file_name, user=None, company=None)
     return attachment
 
 
 def download_attachment(attachment_id: str) -> Attachment | None:
     """Get attachment for download (returns None if not found or inactive)."""
     try:
-        return Attachment.objects.get(id=attachment_id, is_active=True)
+        attachment = Attachment.objects.get(id=attachment_id, is_active=True)
+        _log_file_audit("download", attachment.file_name, user=None, company=None)
+        return attachment
     except Attachment.DoesNotExist:
         return None
+
+
+def _log_file_audit(action: str, file_name: str, user, company) -> None:
+    """Log a file action to the audit system."""
+    try:
+        from apps.core.services.advanced_audit_service import log_file_action
+
+        log_file_action(
+            action=action,
+            file_name=file_name,
+            user=user,
+            company=company,
+        )
+    except Exception as exc:
+        logger.warning("Failed to log file audit for %s: %s", file_name, exc)

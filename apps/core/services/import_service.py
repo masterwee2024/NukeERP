@@ -580,6 +580,8 @@ def import_job(job_id: UUID, user) -> dict:
         notes=f"Imported {success_count} records, {error_count} errors",
     )
 
+    _log_bulk_import_audit(job, success_count, error_count, user)
+
     return {
         "success": True,
         "success_count": success_count,
@@ -654,3 +656,19 @@ def get_import_history(company_id=None, limit=50):
     if company_id:
         qs = qs.filter(job__company_id=company_id)
     return list(qs[:limit])
+
+
+def _log_bulk_import_audit(job, success_count, error_count, user):
+    """Log a bulk import operation to the audit system."""
+    try:
+        from apps.core.services.advanced_audit_service import log_bulk_operation
+
+        log_bulk_operation(
+            operation_type="bulk_import",
+            description=f"Imported {success_count} records ({error_count} errors) via {job.template.entity_type}",
+            records=[{"model_name": job.template.entity_type, "count": success_count}],
+            user=user,
+            company=job.company,
+        )
+    except Exception as exc:
+        logger.warning("Failed to log bulk import audit: %s", exc)
