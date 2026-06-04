@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useAction } from "@/components/ui/ConfirmDialog";
 import api from "@/lib/api";
 import {
   Upload,
@@ -61,6 +62,7 @@ type Step = "templates" | "upload" | "mapping" | "validate" | "result";
 
 export default function ImportPage() {
   const { confirm } = useConfirm();
+  const { execute } = useAction();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("templates");
@@ -422,36 +424,31 @@ export default function ImportPage() {
           </div>
           <button
             onClick={async () => {
-              const ok = await confirm({
-                title: "Reload Templates",
-                message: "Reload default import templates? Any custom templates will be preserved.",
-                variant: "info",
-                confirmText: "Reload",
-              });
-              if (!ok) return;
-              try {
-                const before = templates.length;
-                await api.post("/core/import/seed-templates/");
-                await queryClient.invalidateQueries({ queryKey: ["import-templates"] });
-                await new Promise((r) => setTimeout(r, 200));
-                const after = (queryClient.getQueryData(["import-templates"]) as unknown[])?.length ?? 0;
-                const loaded = after - before;
-                await confirm({
-                  title: loaded > 0 ? "Templates Loaded" : "Up to Date",
-                  message: loaded > 0
-                    ? `${loaded} new template(s) loaded.`
-                    : "All import templates are already up to date.",
+              const before = templates.length;
+              await execute({
+                confirm: {
+                  title: "Reload Templates",
+                  message: "Reload default import templates? Any custom templates will be preserved.",
                   variant: "info",
-                  confirmText: "OK",
-                });
-              } catch (err: unknown) {
-                await confirm({
-                  title: "Error",
-                  message: `Failed to reload templates. ${err instanceof Error ? err.message : "Please contact system administrator."}`,
-                  variant: "danger",
-                  confirmText: "OK",
-                });
-              }
+                  confirmText: "Reload",
+                },
+                action: async () => {
+                  await api.post("/core/import/seed-templates/");
+                  await queryClient.invalidateQueries({ queryKey: ["import-templates"] });
+                  await new Promise((r) => setTimeout(r, 200));
+                  const after = (queryClient.getQueryData(["import-templates"]) as unknown[])?.length ?? 0;
+                  return after - before;
+                },
+                success: { title: "", message: "", variant: "info" },
+                onSuccess: async (loaded) => {
+                  await confirm({
+                    title: (loaded as number) > 0 ? "Templates Loaded" : "Up to Date",
+                    message: (loaded as number) > 0 ? `${loaded} new template(s) loaded.` : "All import templates are already up to date.",
+                    variant: "info",
+                    confirmText: "OK",
+                  });
+                },
+              });
             }}
             className="shrink-0 rounded-lg border border-secondary-300 px-3 py-2 text-xs font-medium text-secondary-600 hover:bg-secondary-50"
             title="Reload default import templates"

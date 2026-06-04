@@ -30,6 +30,68 @@ export function useConfirm(): ConfirmContextValue {
   return context;
 }
 
+
+// ── useAction — standard Confirm → Execute → Result pattern ──
+
+export interface ActionConfig<TReturn = void> {
+  /** Confirm step — omit to skip confirmation */
+  confirm?: ConfirmConfig;
+  /** The actual action (API call, etc.) */
+  action: () => Promise<TReturn> | TReturn;
+  /** Success dialog — omit to skip */
+  success?: { title: string; message?: string; variant?: "info" | "warning" | "danger" };
+  /** Error dialog title (default "Error") */
+  errorTitle?: string;
+  /** Called after success dialog closes, receives action return value */
+  onSuccess?: (result: TReturn) => void | Promise<void>;
+}
+
+export function useAction() {
+  const { confirm } = useConfirm();
+
+  async function execute<TReturn = void>(
+    cfg: ActionConfig<TReturn>,
+  ): Promise<TReturn | undefined> {
+    // 1. Confirm
+    if (cfg.confirm) {
+      const ok = await confirm(cfg.confirm);
+      if (!ok) return undefined;
+    }
+
+    try {
+      // 2. Execute
+      const result = await cfg.action();
+
+      // 3. Success dialog
+      if (cfg.success) {
+        await confirm({
+          title: cfg.success.title,
+          message: cfg.success.message ?? "",
+          variant: cfg.success.variant ?? "info",
+          confirmText: "OK",
+        });
+      }
+
+      if (cfg.onSuccess) {
+        await cfg.onSuccess(result);
+      }
+
+      return result as TReturn;
+    } catch (err: unknown) {
+      // 4. Error dialog
+      await confirm({
+        title: cfg.errorTitle ?? "Error",
+        message: err instanceof Error ? err.message : "Please contact system administrator.",
+        variant: "danger",
+        confirmText: "OK",
+      });
+      return undefined;
+    }
+  }
+
+  return { execute };
+}
+
 interface ConfirmState {
   open: boolean;
   config: ConfirmConfig;
@@ -122,7 +184,7 @@ function ConfirmModal({
         aria-modal="true"
         aria-labelledby="confirm-title"
         onKeyDown={handleKeyDown}
-        className="relative w-full max-w-[calc(100vw-2rem)] rounded-lg bg-white p-6 shadow-xl"
+        className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
       >
         <div className="flex items-start gap-4">
           <div
