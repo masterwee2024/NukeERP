@@ -1640,3 +1640,59 @@ class OpeningBalanceAsset(ConcurrencyModel):
     class Meta:
         db_table = "core_opening_balance_asset"
         ordering = ["row_number"]
+
+
+class IndustryTemplate(ConcurrencyModel):
+    """JSON-based industry template — pre-configures the platform for a specific industry."""
+
+    name = models.CharField(max_length=200)
+    code = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True, default="")
+    template_version = models.CharField(max_length=20, default="1.0.0")
+    module_dependencies = models.JSONField(default=list, blank=True)
+    menu_config = models.JSONField(default=list, blank=True)
+    page_config = models.JSONField(default=list, blank=True)
+    workflow_config = models.JSONField(default=list, blank=True)
+    gl_account_config = models.JSONField(default=list, blank=True)
+    report_config = models.JSONField(default=list, blank=True)
+    seed_data = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_industry_template"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} v{self.template_version}"
+
+
+class IndustryTemplateInstallation(ConcurrencyModel):
+    """Records a template installation for a specific company."""
+
+    template = models.ForeignKey(
+        IndustryTemplate, on_delete=models.CASCADE, related_name="installations"
+    )
+    company = models.ForeignKey(
+        "Company", on_delete=models.CASCADE, related_name="template_installations"
+    )
+    installed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="template_installations",
+    )
+    installed_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[("active", "Active"), ("uninstalled", "Uninstalled")],
+        default="active",
+    )
+    configuration_overrides = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "core_industry_template_installation"
+        unique_together = [("template", "company", "status")]
+        ordering = ["-installed_at"]
+
+    def __str__(self):
+        return f"{self.template.code} @ {self.company_id} ({self.status})"

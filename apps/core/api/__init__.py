@@ -19,6 +19,7 @@ from apps.core.api.opening_balance_api import router as opening_balance_router
 from apps.core.api.page_config_api import router as page_config_router
 from apps.core.api.policy_api import router as policy_router
 from apps.core.api.rbac_api import router as rbac_router
+from apps.core.api.template_api import router as template_router
 from apps.core.api.user_api import router as user_admin_router
 from apps.core.api.workflow_api import admin_router as workflow_admin_router
 from apps.core.api.workflow_api import router as workflow_execution_router
@@ -44,3 +45,4 @@ router.add_router("/admin/", policy_router, tags=["admin"])
 router.add_router("/import/", import_router, tags=["import"])
 router.add_router("/opening-balance/", opening_balance_router, tags=["opening-balance"])
 router.add_router("/platform/modules/", module_router, tags=["platform"])
+router.add_router("/platform/templates/", template_router, tags=["platform"])
