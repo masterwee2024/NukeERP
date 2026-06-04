@@ -148,3 +148,38 @@ class JournalEntryLine(ConcurrencyModel):
 
     def __str__(self):
         return f"Line {self.line_number}: {self.account.code} DR={self.debit} CR={self.credit}"
+
+
+class GeneralLedger(models.Model):
+    """Immutable GL entry created when a journal entry is posted."""
+
+    journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.CASCADE, related_name="gl_entries"
+    )
+    journal_entry_line = models.ForeignKey(
+        JournalEntryLine, on_delete=models.CASCADE, related_name="gl_entries"
+    )
+    account = models.ForeignKey(
+        Account, on_delete=models.PROTECT, related_name="gl_entries"
+    )
+    date = models.DateField(db_index=True)
+    debit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    credit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    balance = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="gl_entries"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "financial_general_ledger"
+        ordering = ["date", "created_at"]
+        verbose_name = "General Ledger Entry"
+        verbose_name_plural = "General Ledger Entries"
+        indexes = [
+            models.Index(fields=["account", "date"]),
+            models.Index(fields=["company", "date"]),
+        ]
+
+    def __str__(self):
+        return f"GL: {self.account.code} DR={self.debit} CR={self.credit}"
