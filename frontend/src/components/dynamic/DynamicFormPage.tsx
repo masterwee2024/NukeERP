@@ -25,9 +25,18 @@ import { evaluateVisibility } from "@/hooks/useConditionalDisplay";
 interface DynamicFormPageProps {
   config: PageConfig;
   recordId?: string;
+  showTitle?: boolean;
+  onCancel?: () => void;
+  onSuccess?: (record: Record<string, unknown>) => void;
 }
 
-export default function DynamicFormPage({ config, recordId }: DynamicFormPageProps) {
+export default function DynamicFormPage({
+  config,
+  recordId,
+  showTitle = true,
+  onCancel,
+  onSuccess,
+}: DynamicFormPageProps) {
   const isEdit = !!recordId;
   const queryClient = useQueryClient();
   const { confirm } = useConfirm();
@@ -131,8 +140,9 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [config.api_endpoint] });
+      onSuccess?.(data);
     },
   });
 
@@ -162,25 +172,51 @@ export default function DynamicFormPage({ config, recordId }: DynamicFormPagePro
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-secondary-900">
-          {isEdit ? `Edit ${config.page_title}` : `New ${config.page_title}`}
-        </h2>
-        <div className="flex gap-2">
-          {config.actions
-            .filter(
-              (a) =>
-                a.label.toLowerCase() === "save" || a.label.toLowerCase() === "submit"
-            )
-            .map((action) => (
-              <button
-                key={action.label}
-                type="submit"
-                disabled={mutation.isPending}
-                className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-              >
-                {mutation.isPending ? "Saving..." : action.label}
-              </button>
-            ))}
+        {showTitle && (
+          <h2 className="text-lg font-semibold text-secondary-900">
+            {isEdit ? `Edit ${config.page_title}` : `New ${config.page_title}`}
+          </h2>
+        )}
+        <div className="flex gap-2 ml-auto">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-md border border-secondary-300 bg-white px-4 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50"
+            >
+              Cancel
+            </button>
+          )}
+          {config.actions.some(
+            (a) =>
+              a.label.toLowerCase() === "save" ||
+              a.label.toLowerCase() === "submit"
+          ) ? (
+            config.actions
+              .filter(
+                (a) =>
+                  a.label.toLowerCase() === "save" ||
+                  a.label.toLowerCase() === "submit"
+              )
+              .map((action) => (
+                <button
+                  key={action.label}
+                  type="submit"
+                  disabled={mutation.isPending}
+                  className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {mutation.isPending ? "Saving..." : action.label}
+                </button>
+              ))
+          ) : (
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            >
+              {mutation.isPending ? "Saving..." : "Save"}
+            </button>
+          )}
         </div>
       </div>
 

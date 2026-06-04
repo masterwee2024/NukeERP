@@ -65,7 +65,12 @@ export default function DynamicDetailPage({
   });
 
   const grouped = groupFields(displayFields);
-  const actionButtons = config.actions;
+  const actionButtons = config.actions.filter(
+    (a) =>
+      !["create", "add", "edit", "delete", "save", "submit", "cancel"].includes(
+        a.label.toLowerCase()
+      )
+  );
 
   return (
     <div className="space-y-6">

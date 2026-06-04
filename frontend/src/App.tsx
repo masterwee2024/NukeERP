@@ -34,6 +34,8 @@ const FieldCustomizerPage = lazy(() => import("./pages/admin/FieldCustomizerPage
 const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NumberingSeriesPage = lazy(() => import("./pages/admin/NumberingSeriesPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
+const NotificationCentrePage = lazy(() => import("./pages/admin/NotificationCentrePage"));
+const EmailApprovalExecutePage = lazy(() => import("./pages/EmailApprovalExecutePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function LoadingSpinner() {
@@ -82,8 +84,12 @@ export default function App() {
                       element={<NumberingSeriesPage />}
                     />
                     <Route path="admin/audit-logs" element={<AuditLogPage />} />
+                    <Route path="notifications" element={<NotificationCentrePage />} />
                   </Route>
                 </Route>
+
+                {/* Public Execute Approval Route */}
+                <Route path="/app/approvals/execute" element={<EmailApprovalExecutePage />} />
 
                 {/* Redirects */}
                 <Route path="/" element={<Navigate to="/app/dashboard" replace />} />

@@ -9,6 +9,7 @@ from django.db.models import Model
 from django.utils import timezone
 
 from apps.core.models import (
+    Channel,
     Company,
     User,
     UserCompany,
@@ -18,6 +19,7 @@ from apps.core.models import (
     WorkflowExecutionStep,
     WorkflowNode,
 )
+from apps.core.services.messaging_service import send_system_message
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,55 @@ def user_has_company_access(user: User, company_id: UUID) -> bool:
     if user.is_superuser:
         return True
     return UserCompany.objects.filter(user=user, company_id=company_id).exists()
+
+
+def _create_pending_steps_for_current_node(execution: WorkflowExecution) -> None:
+    """Resolve approvers for current node, create pending steps, and send notifications."""
+    if execution.status != "pending" or not execution.current_node_id:
+        return
+
+    current_node = _get_node(execution.workflow, execution.current_node_id)
+    if not current_node or current_node.node_type != "approve":
+        return
+
+    # Delete existing pending steps for this node to avoid duplicates
+    WorkflowExecutionStep.objects.filter(
+        execution=execution, node=current_node, status="pending"
+    ).delete()
+
+    approvers = resolve_approvers(current_node, execution)
+
+    # Import inline to avoid circular import issues
+    from apps.core.services.notification_service import send_notification
+    from apps.core.tasks import send_approval_email
+
+    for entry in approvers:
+        user = entry["user"]
+
+        # Create pending step
+        WorkflowExecutionStep.objects.create(
+            execution=execution, node=current_node, approver=user, status="pending"
+        )
+
+        # Send Notification
+        title = f"Approval Required: {execution.document_type}"
+        message = (
+            f"You have a new approval request for {execution.document_type} "
+            f"#{execution.document_id} submitted by {execution.requester.full_name or execution.requester.email}."
+        )
+        link = f"/app/{execution.workflow.module}/{execution.workflow.document_type.lower()}s"
+
+        send_notification(
+            recipient=user,
+            slug="approval_request",
+            title=title,
+            message=message,
+            link=link,
+            company=execution.company,
+        )
+
+        # Dispatch async approval email with secure links
+        send_approval_email.delay(str(execution.id), str(user.id))
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +207,43 @@ def create_execution(
         )
 
     execution.save(update_fields=["current_node_id"])
+    _create_pending_steps_for_current_node(execution)
+
+    _post_approval_system_message(execution, workflow)
+
     return execution
+
+
+def _post_approval_system_message(execution, workflow):
+    try:
+        channel = Channel.objects.filter(
+            company=execution.company,
+            type="system",
+            name__iexact="approvals",
+        ).first()
+        if not channel:
+            return
+
+        pending_steps = WorkflowExecutionStep.objects.filter(
+            execution=execution, status="pending"
+        ).select_related("approver")
+
+        approver_mentions = " ".join(
+            f"@{step.approver.email.split('@')[0]}"
+            for step in pending_steps
+            if step.approver
+        )
+
+        meta = execution.metadata or {}
+        doc_number = meta.get("document_number") or str(execution.document_id)[:8]
+        send_system_message(
+            channel=channel,
+            content=f"{approver_mentions} Please approve {execution.document_type} #{doc_number} ({execution.requester.email})",
+            link_type="approval",
+            link_id=execution.id,
+        )
+    except Exception as exc:
+        logger.warning("System message skipped for execution %s: %s", execution.id, exc)
 
 
 def _advance_past_non_approval_nodes(
@@ -307,6 +394,11 @@ def process_action(
             "message": "No current node found",
         }
 
+    # Delete the current approver's pending step
+    WorkflowExecutionStep.objects.filter(
+        execution=execution, node=current_node, approver=approver, status="pending"
+    ).delete()
+
     step = WorkflowExecutionStep.objects.create(
         execution=execution,
         node=current_node,
@@ -340,6 +432,37 @@ def process_action(
             }
         if not user_has_company_access(step.delegated_to, execution.company_id):
             raise PermissionError("Delegate does not have access to this company")
+
+        # Create new pending step for the delegate
+        WorkflowExecutionStep.objects.create(
+            execution=execution,
+            node=current_node,
+            approver=step.delegated_to,
+            status="pending",
+        )
+
+        # Notify the delegate
+        title = f"Approval Request Delegated: {execution.document_type}"
+        message = (
+            f"You have been delegated an approval request for {execution.document_type} "
+            f"#{execution.document_id} by {approver.full_name or approver.email}."
+        )
+        link = f"/app/{execution.workflow.module}/{execution.workflow.document_type.lower()}s"
+
+        from apps.core.services.notification_service import send_notification
+        from apps.core.tasks import send_approval_email
+
+        send_notification(
+            recipient=step.delegated_to,
+            slug="approval_request",
+            title=title,
+            message=message,
+            link=link,
+            company=execution.company,
+        )
+
+        send_approval_email.delay(str(execution.id), str(step.delegated_to.id))
+
         return {
             "execution_id": str(execution.id),
             "status": execution.status,
@@ -410,6 +533,7 @@ def _advance_to_next_node(
         execution.save(update_fields=["current_node_id", "status", "completed_at"])
     else:
         execution.save(update_fields=["current_node_id"])
+        _create_pending_steps_for_current_node(execution)
 
 
 def escalate(execution_id: UUID) -> dict:
@@ -440,6 +564,7 @@ def escalate(execution_id: UUID) -> dict:
         )
         execution.current_node_id = next_id
         execution.save(update_fields=["current_node_id"])
+        _create_pending_steps_for_current_node(execution)
         return {
             "execution_id": str(execution.id),
             "status": execution.status,

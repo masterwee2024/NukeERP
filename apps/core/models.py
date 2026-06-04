@@ -1050,3 +1050,283 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.action} {self.model_name} #{self.record_id}"
+
+
+class NotificationType(ConcurrencyModel):
+    """Configuration template for notification types."""
+
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True)
+    email_template = models.TextField(blank=True, default="")
+    in_app_template = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_notification_type"
+        ordering = ["name"]
+        verbose_name = "Notification Type"
+        verbose_name_plural = "Notification Types"
+
+    def __str__(self):
+        return self.name
+
+
+class Notification(ConcurrencyModel):
+    """In-app and standard notification record."""
+
+    notification_type = models.ForeignKey(
+        NotificationType, on_delete=models.CASCADE, related_name="notifications"
+    )
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notifications"
+    )
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    link = models.CharField(max_length=500, blank=True, default="")
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "core_notification"
+        ordering = ["-created_at"]
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+        indexes = [
+            models.Index(fields=["recipient", "is_read"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} for {self.recipient.email}"
+
+
+class PushSubscription(ConcurrencyModel):
+    """PWA push notification subscriptions for Web Push protocol."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="push_subscriptions"
+    )
+    endpoint = models.TextField()
+    p256dh = models.TextField()
+    auth = models.TextField()
+    user_agent = models.CharField(max_length=500, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_push_subscription"
+        ordering = ["-created_at"]
+        verbose_name = "Push Subscription"
+        verbose_name_plural = "Push Subscriptions"
+
+    def __str__(self):
+        return f"Push for {self.user.email}"
+
+
+class ApprovalToken(ConcurrencyModel):
+    """Secure tokens for quick email approvals without login."""
+
+    execution = models.ForeignKey(
+        WorkflowExecution, on_delete=models.CASCADE, related_name="approval_tokens"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="approval_tokens"
+    )
+    token = models.CharField(max_length=255, unique=True)
+    action = models.CharField(
+        max_length=20,
+        choices=[("approve", "Approve"), ("reject", "Reject")],
+    )
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="approval_tokens"
+    )
+
+    class Meta:
+        db_table = "core_approval_token"
+        ordering = ["-created_at"]
+        verbose_name = "Approval Token"
+        verbose_name_plural = "Approval Tokens"
+
+    def __str__(self):
+        return f"{self.action} token for {self.user.email}"
+
+
+class Channel(ConcurrencyModel):
+    """Internal chat channel or direct message thread."""
+
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default="")
+    type = models.CharField(
+        max_length=20,
+        choices=[
+            ("public", "Public"),
+            ("private", "Private"),
+            ("direct", "Direct Message"),
+            ("group_dm", "Group DM"),
+            ("system", "System"),
+            ("broadcast", "Broadcast"),
+        ],
+        default="public",
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_channels",
+    )
+    is_archived = models.BooleanField(default=False)
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="channels"
+    )
+
+    class Meta:
+        db_table = "core_channel"
+        ordering = ["name"]
+        verbose_name = "Channel"
+        verbose_name_plural = "Channels"
+
+    def __str__(self):
+        return f"{self.type} - {self.name} ({self.company.code})"
+
+
+class ChannelMember(ConcurrencyModel):
+    """Membership of a user in a channel."""
+
+    channel = models.ForeignKey(
+        Channel, on_delete=models.CASCADE, related_name="memberships"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="channel_memberships"
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=[
+            ("owner", "Owner"),
+            ("admin", "Admin"),
+            ("member", "Member"),
+        ],
+        default="member",
+    )
+    last_read_at = models.DateTimeField(auto_now_add=True)
+    notification_mute = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "core_channel_member"
+        unique_together = [("channel", "user")]
+        ordering = ["joined_at"]
+        verbose_name = "Channel Member"
+        verbose_name_plural = "Channel Members"
+
+    def __str__(self):
+        return f"{self.user.email} in {self.channel.name}"
+
+
+class Message(ConcurrencyModel):
+    """Message sent within a channel or DM thread."""
+
+    channel = models.ForeignKey(
+        Channel, on_delete=models.CASCADE, related_name="messages"
+    )
+    sender = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="messages_sent"
+    )
+    content = models.TextField()
+    content_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("text", "Text"),
+            ("file", "File Attachment"),
+            ("link", "Link Preview"),
+            ("system", "System"),
+        ],
+        default="text",
+    )
+    reply_to = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
+    )
+    link_type = models.CharField(max_length=50, blank=True, default="")
+    link_id = models.UUIDField(null=True, blank=True)
+    is_edited = models.BooleanField(default=False)
+    edited_at = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "core_message"
+        ordering = ["created_at"]
+        verbose_name = "Message"
+        verbose_name_plural = "Messages"
+
+    def __str__(self):
+        return f"Msg {self.id} by {self.sender.email} in {self.channel.name}"
+
+
+class MessageAttachment(ConcurrencyModel):
+    """File attachment uploaded within a message."""
+
+    message = models.ForeignKey(
+        Message, on_delete=models.CASCADE, related_name="attachments"
+    )
+    file = models.FileField(upload_to="chat_attachments/")
+    file_name = models.CharField(max_length=255)
+    file_size = models.IntegerField()
+    mime_type = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = "core_message_attachment"
+        verbose_name = "Message Attachment"
+        verbose_name_plural = "Message Attachments"
+
+    def __str__(self):
+        return self.file_name
+
+
+class MessageReaction(ConcurrencyModel):
+    """Emoji reaction to a message."""
+
+    message = models.ForeignKey(
+        Message, on_delete=models.CASCADE, related_name="reactions"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="message_reactions"
+    )
+    emoji = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = "core_message_reaction"
+        unique_together = [("message", "user", "emoji")]
+        verbose_name = "Message Reaction"
+        verbose_name_plural = "Message Reactions"
+
+    def __str__(self):
+        return f"{self.user.email} reacts {self.emoji} to message {self.message.id}"
+
+
+class MessageRead(ConcurrencyModel):
+    """Individual read tracking per message and user."""
+
+    message = models.ForeignKey(
+        Message, on_delete=models.CASCADE, related_name="read_records"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="messages_read"
+    )
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "core_message_read"
+        unique_together = [("message", "user")]
+        verbose_name = "Message Read"
+        verbose_name_plural = "Message Reads"
+
+    def __str__(self):
+        return f"Message {self.message.id} read by {self.user.email}"

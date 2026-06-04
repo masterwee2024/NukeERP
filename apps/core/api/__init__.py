@@ -2,12 +2,16 @@
 
 from ninja import Router
 
+from apps.core.api.approval_center_api import router as approval_center_router
 from apps.core.api.attachment_api import router as attachment_router
 from apps.core.api.audit_api import router as audit_router
 from apps.core.api.auth_api import router as auth_router
 from apps.core.api.company_api import router as company_router
 from apps.core.api.email_settings_api import router as email_settings_router
 from apps.core.api.menu_api import router as menu_router
+from apps.core.api.messaging_api import router as messaging_router
+from apps.core.api.notification_api import approvals_router
+from apps.core.api.notification_api import router as notification_router
 from apps.core.api.numbering_api import router as numbering_router
 from apps.core.api.page_config_api import router as page_config_router
 from apps.core.api.rbac_api import router as rbac_router
@@ -28,3 +32,7 @@ router.add_router("/admin/", email_settings_router, tags=["admin"])
 router.add_router("/admin/", numbering_router, tags=["admin"])
 router.add_router("/admin/", audit_router, tags=["admin"])
 router.add_router("/workflows/", workflow_execution_router, tags=["workflows"])
+router.add_router("/notifications/", notification_router, tags=["notifications"])
+router.add_router("/approvals/", approvals_router, tags=["approvals"])
+router.add_router("/approval-center/", approval_center_router, tags=["approval-center"])
+router.add_router("/messaging/", messaging_router, tags=["messaging"])
