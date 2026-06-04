@@ -74,8 +74,14 @@ pyERP/
 - **Every** create, update, delete, post, void, approve action uses `useConfirm()` hook
 - **Never** use `window.confirm()`
 - **Never** perform destructive action without confirmation
-- If a CRUD action is missing confirmation, it is a bug
-- Variants: `danger` (delete), `warning` (post/void), `info` (submit)
+- **Every action button** follows the **Confirm → Execute → Result** pattern:
+  1. Confirm dialog — ask user before proceeding (variant: info/warning/danger)
+  2. Execute — perform the API call
+  3. Success dialog — show what was done, user clicks "OK"
+  4. Error dialog — show `err.message` or "contact system administrator", user clicks "OK"
+- **No silent success**, **no silent error**, **no inline flash messages**, **no multi-state button labels**
+- If a CRUD action is missing the full dialog cycle (confirm + result), it is a bug
+- Variants: `danger` (delete), `warning` (post/void), `info` (submit/reload)
 
 ### Multi-Company Architecture
 - **Master data is global** — Items, Customers, Vendors, Employees, COA have NO company_id FK

@@ -131,6 +131,7 @@ return (
 - [ ] Read `AGENTS.md` conventions
 - [ ] Shared components exist (create if missing)
 - [ ] `useConfirm()` on create, update, delete
+- [ ] **Every action button** follows the **Confirm → Execute → Result** pattern (see Action Button Standard below)
 - [ ] Same `viewContent` for mobile and desktop
 - [ ] AccordionSection with controlled mode (auto-collapse)
 - [ ] Text buttons on desktop, icon buttons on mobile
@@ -140,3 +141,61 @@ return (
 - [ ] Route registered in `App.tsx`
 - [ ] Backend tests pass
 - [ ] `npm run build` succeeds
+
+
+## Action Button Standard (MANDATORY)
+
+**Every action button** must follow the **Confirm → Execute → Result** pattern.
+No silent actions. No inline flash messages. No multi-state button labels.
+
+### Pattern
+
+```tsx
+async function handleAction() {
+  // 1. CONFIRM — ask user before proceeding
+  const ok = await confirm({
+    title: "Action Title",
+    message: "What will happen? Be specific.",
+    variant: "info",      // info / warning / danger
+    confirmText: "Proceed",
+  });
+  if (!ok) return;
+
+  try {
+    // 2. EXECUTE — perform the action
+    await api.post("/some/endpoint/");
+
+    // 3. SUCCESS — show result dialog (user MUST click OK)
+    await confirm({
+      title: "Action Complete",
+      message: "What was done (count, details).",
+      variant: "info",
+      confirmText: "OK",
+    });
+  } catch (err: unknown) {
+    // 4. ERROR — show error dialog with actionable message
+    await confirm({
+      title: "Error",
+      message: `Failed to do action. ${err instanceof Error ? err.message : "Please contact system administrator."}`,
+      variant: "danger",
+      confirmText: "OK",
+    });
+  }
+}
+```
+
+### Variants
+
+| Variant | When | confirmText |
+|---------|------|-------------|
+| `info` | Non-destructive actions (reload, submit, create) | "Proceed" / "Reload" / "Create" |
+| `warning` | Destructive or irreversible actions (post, void, complete) | "Post" / "Void" / "Complete" |
+| `danger` | Data deletion | "Delete" / "Remove" |
+
+### Prohibited
+
+- **No silent success** — user must see a dialog confirming completion
+- **No silent error** — user must see a dialog explaining what went wrong (include `err.message` when available, otherwise generic "contact system administrator")
+- **No inline flash messages** — no `setTimeout` auto-dismiss toasts, no button text changes as feedback
+- **No `catch { /* ignore */ }`** — never swallow errors
+- **No `window.confirm()`** — use `useConfirm()` hook only

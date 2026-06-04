@@ -69,7 +69,6 @@ export default function ImportPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<Record<string, unknown> | null>(null);
   const [search, setSearch] = useState("");
-  const [reloadStatus, setReloadStatus] = useState<"idle" | "reloading" | "done" | "uptodate" | "failed">("idle");
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
     queryKey: ["import-templates"],
@@ -423,42 +422,41 @@ export default function ImportPage() {
           </div>
           <button
             onClick={async () => {
-              setReloadStatus("reloading");
+              const ok = await confirm({
+                title: "Reload Templates",
+                message: "Reload default import templates? Any custom templates will be preserved.",
+                variant: "info",
+                confirmText: "Reload",
+              });
+              if (!ok) return;
               try {
                 const before = templates.length;
                 await api.post("/core/import/seed-templates/");
                 await queryClient.invalidateQueries({ queryKey: ["import-templates"] });
                 await new Promise((r) => setTimeout(r, 200));
                 const after = (queryClient.getQueryData(["import-templates"]) as unknown[])?.length ?? 0;
-                if (after > before) {
-                  setReloadStatus("done");
-                } else {
-                  setReloadStatus("uptodate");
-                }
-              } catch {
-                setReloadStatus("failed");
+                const loaded = after - before;
+                await confirm({
+                  title: loaded > 0 ? "Templates Loaded" : "Up to Date",
+                  message: loaded > 0
+                    ? `${loaded} new template(s) loaded.`
+                    : "All import templates are already up to date.",
+                  variant: "info",
+                  confirmText: "OK",
+                });
+              } catch (err: unknown) {
+                await confirm({
+                  title: "Error",
+                  message: `Failed to reload templates. ${err instanceof Error ? err.message : "Please contact system administrator."}`,
+                  variant: "danger",
+                  confirmText: "OK",
+                });
               }
-              setTimeout(() => setReloadStatus("idle"), 2000);
             }}
-            className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-              reloadStatus === "reloading"
-                ? "border-primary-300 bg-primary-50 text-primary-600"
-                : reloadStatus === "done"
-                  ? "border-success-300 bg-success-50 text-success-700"
-                  : reloadStatus === "uptodate"
-                    ? "border-secondary-300 bg-secondary-50 text-secondary-600"
-                    : reloadStatus === "failed"
-                      ? "border-danger-300 bg-danger-50 text-danger-700"
-                      : "border-secondary-300 text-secondary-600 hover:bg-secondary-50"
-            }`}
+            className="shrink-0 rounded-lg border border-secondary-300 px-3 py-2 text-xs font-medium text-secondary-600 hover:bg-secondary-50"
             title="Reload default import templates"
-            disabled={reloadStatus === "reloading"}
           >
-            {reloadStatus === "idle" && "Reload Templates"}
-            {reloadStatus === "reloading" && "Reloading..."}
-            {reloadStatus === "done" && "New templates loaded!"}
-            {reloadStatus === "uptodate" && "Templates up to date"}
-            {reloadStatus === "failed" && "Failed — page will reload"}
+            Reload Templates
           </button>
         </div>
       </div>
