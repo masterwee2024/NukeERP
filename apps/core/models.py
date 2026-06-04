@@ -1330,3 +1330,41 @@ class MessageRead(ConcurrencyModel):
 
     def __str__(self):
         return f"Message {self.message.id} read by {self.user.email}"
+
+
+class ApprovalPolicy(ConcurrencyModel):
+    """Policy that auto-routes transactions to a workflow based on conditions."""
+
+    name = models.CharField(max_length=200)
+    workflow = models.ForeignKey(
+        WorkflowDefinition, on_delete=models.CASCADE, related_name="policies"
+    )
+    module = models.CharField(max_length=50, choices=WORKFLOW_MODULE_CHOICES)
+    document_type = models.CharField(max_length=100)
+    conditions = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of condition objects: [{field, operator, value, value_to?}]",
+    )
+    priority = models.PositiveIntegerField(
+        default=100, help_text="Lower number = higher priority"
+    )
+    is_active = models.BooleanField(default=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="approval_policies",
+        help_text="Null = global policy",
+    )
+
+    class Meta:
+        db_table = "core_approval_policy"
+        ordering = ["module", "document_type", "priority", "name"]
+        verbose_name = "Approval Policy"
+        verbose_name_plural = "Approval Policies"
+
+    def __str__(self):
+        scope = "Global" if self.company is None else self.company.code
+        return f"{self.name} [{scope}] ({self.module}.{self.document_type})"

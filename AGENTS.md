@@ -446,6 +446,35 @@ This project uses Graphify for knowledge graph generation. Before scanning the c
 2. Run Graphify to generate the knowledge graph JSON + HTML
 3. The graph provides module-level community detection for faster code navigation
 
+## Task Documentation
+
+Every task spec (`docs/tXXX.md`) MUST include the following sections where applicable:
+
+### UI Delivery (if task has frontend components)
+A block listing the route path, page component path, and sidebar registration details:
+
+```markdown
+### UI Delivery
+- **Route**: `/app/{resource}`
+- **Page**: `frontend/src/pages/{module}/{PageName}.tsx`
+- **Sidebar**: {location description} (slug: `{slug}`, icon: `{IconName}`)
+```
+
+### Deliverables Checklist
+Every task that delivers a UI page MUST have a checklist item for sidebar registration:
+
+```markdown
+- [ ] Sidebar menu registration — `seed_menus.py`: slug `{slug}`, url `{url}`, icon `{IconName}`, {parent location}
+```
+
+### Where to Register Sidebar Menus
+Menus are seeded in `apps/core/management/commands/seed_menus.py`. The `SidebarItem.tsx` and `SidebarGroup.tsx` components each have a hardcoded `iconMap` — when adding a new icon string to `seed_menus.py`, you MUST also add the corresponding SVG path data to BOTH `SidebarItem.tsx` and `SidebarGroup.tsx`.
+
+### How to Verify
+1. Run `uv run python manage.py seed_menus` to upsert menu records into the DB
+2. Restart containers: `docker compose restart frontend django`
+3. Hard-refresh browser (Ctrl+Shift+R) to clear React Query menu cache
+
 ## Common Pitfalls
 
 1. **Forgetting `company_id` filter** — every list query must filter by `request.user.company_id`

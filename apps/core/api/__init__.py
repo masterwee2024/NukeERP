@@ -14,6 +14,7 @@ from apps.core.api.notification_api import approvals_router
 from apps.core.api.notification_api import router as notification_router
 from apps.core.api.numbering_api import router as numbering_router
 from apps.core.api.page_config_api import router as page_config_router
+from apps.core.api.policy_api import router as policy_router
 from apps.core.api.rbac_api import router as rbac_router
 from apps.core.api.user_api import router as user_admin_router
 from apps.core.api.workflow_api import admin_router as workflow_admin_router
@@ -36,3 +37,4 @@ router.add_router("/notifications/", notification_router, tags=["notifications"]
 router.add_router("/approvals/", approvals_router, tags=["approvals"])
 router.add_router("/approval-center/", approval_center_router, tags=["approval-center"])
 router.add_router("/messaging/", messaging_router, tags=["messaging"])
+router.add_router("/admin/", policy_router, tags=["admin"])
