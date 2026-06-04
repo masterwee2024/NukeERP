@@ -30,6 +30,8 @@ const iconMap: Record<string, string> = {
     "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z",
   Upload:
     "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m7-4l4 4m0 0l4-4m-4 4V3",
+  Database:
+    "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4",
 };
 
 function getIcon(iconName: string): string {

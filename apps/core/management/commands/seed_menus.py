@@ -544,11 +544,19 @@ MENU_TREE = [
                 "module": "admin",
             },
             {
+                "name": "Opening Balance",
+                "slug": "admin-opening-balance",
+                "icon": "Database",
+                "url": "/app/admin/opening-balance",
+                "sort_order": 5,
+                "module": "admin",
+            },
+            {
                 "name": "Data Import",
                 "slug": "admin-data-import",
                 "icon": "Upload",
                 "url": "/app/admin/import",
-                "sort_order": 5,
+                "sort_order": 6,
                 "module": "admin",
             },
             {

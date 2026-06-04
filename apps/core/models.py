@@ -1500,3 +1500,143 @@ class ImportHistory(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.action} — {self.entity_type} ({self.record_count} records)"
+
+
+# ── Opening Balance Migration Models ──────────────────────────────
+
+
+class OpeningBalanceMigration(ConcurrencyModel):
+    """Tracks a single opening balance migration for a company."""
+
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("rolled_back", "Rolled Back"),
+    ]
+
+    company = models.ForeignKey(
+        "Company", on_delete=models.CASCADE, related_name="opening_migrations"
+    )
+    go_live_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    created_by = models.ForeignKey(
+        "User", on_delete=models.SET_NULL, null=True, related_name="opening_migrations"
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "core_opening_balance_migration"
+        ordering = ["-created_at"]
+        verbose_name = "Opening Balance Migration"
+        verbose_name_plural = "Opening Balance Migrations"
+
+    def __str__(self):
+        return f"Migration {self.id} — {self.company.code} ({self.go_live_date})"
+
+
+class OpeningBalanceGL(ConcurrencyModel):
+    """GL trial balance line for opening balance migration."""
+
+    migration = models.ForeignKey(
+        OpeningBalanceMigration, on_delete=models.CASCADE, related_name="gl_lines"
+    )
+    account_code = models.CharField(max_length=50)
+    account_name = models.CharField(max_length=200, blank=True)
+    debit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    credit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    row_number = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "core_opening_balance_gl"
+        ordering = ["row_number"]
+
+
+class OpeningBalanceAP(ConcurrencyModel):
+    """AP opening invoice line."""
+
+    migration = models.ForeignKey(
+        OpeningBalanceMigration, on_delete=models.CASCADE, related_name="ap_lines"
+    )
+    supplier_code = models.CharField(max_length=50)
+    invoice_no = models.CharField(max_length=100)
+    invoice_date = models.DateField()
+    due_date = models.DateField()
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    currency = models.CharField(max_length=3, default="MYR")
+    row_number = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "core_opening_balance_ap"
+        ordering = ["row_number"]
+
+
+class OpeningBalanceAR(ConcurrencyModel):
+    """AR opening invoice line."""
+
+    migration = models.ForeignKey(
+        OpeningBalanceMigration, on_delete=models.CASCADE, related_name="ar_lines"
+    )
+    customer_code = models.CharField(max_length=50)
+    invoice_no = models.CharField(max_length=100)
+    invoice_date = models.DateField()
+    due_date = models.DateField()
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    currency = models.CharField(max_length=3, default="MYR")
+    row_number = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "core_opening_balance_ar"
+        ordering = ["row_number"]
+
+
+class OpeningBalanceInventory(ConcurrencyModel):
+    """Inventory opening stock line."""
+
+    migration = models.ForeignKey(
+        OpeningBalanceMigration,
+        on_delete=models.CASCADE,
+        related_name="inventory_lines",
+    )
+    item_code = models.CharField(max_length=50)
+    warehouse_code = models.CharField(max_length=50)
+    quantity = models.DecimalField(max_digits=18, decimal_places=2)
+    unit_cost = models.DecimalField(max_digits=18, decimal_places=2)
+    row_number = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "core_opening_balance_inventory"
+        ordering = ["row_number"]
+
+
+class OpeningBalanceAsset(ConcurrencyModel):
+    """Fixed asset opening balance line."""
+
+    migration = models.ForeignKey(
+        OpeningBalanceMigration, on_delete=models.CASCADE, related_name="asset_lines"
+    )
+    asset_code = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=100, blank=True)
+    purchase_date = models.DateField()
+    cost = models.DecimalField(max_digits=18, decimal_places=2)
+    accumulated_depreciation = models.DecimalField(
+        max_digits=18, decimal_places=2, default=0
+    )
+    useful_life = models.IntegerField(null=True, blank=True, help_text="Years")
+    row_number = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "core_opening_balance_asset"
+        ordering = ["row_number"]
