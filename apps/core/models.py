@@ -1696,3 +1696,89 @@ class IndustryTemplateInstallation(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.template.code} @ {self.company_id} ({self.status})"
+
+
+class TransactionMigration(ConcurrencyModel):
+    """Tracks a transaction migration (pending/historical) for a company."""
+
+    MIGRATION_OPTIONS = [
+        ("fresh", "Fresh Start"),
+        ("full", "Full Migration"),
+    ]
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("rolled_back", "Rolled Back"),
+    ]
+
+    company = models.ForeignKey(
+        "Company", on_delete=models.CASCADE, related_name="transaction_migrations"
+    )
+    opening_migration = models.ForeignKey(
+        "OpeningBalanceMigration",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transaction_migrations",
+    )
+    go_live_date = models.DateField()
+    migration_option = models.CharField(
+        max_length=10, choices=MIGRATION_OPTIONS, default="fresh"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    created_by = models.ForeignKey(
+        "User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="transaction_migrations",
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "core_transaction_migration"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"TxMigration {self.id} — {self.company.code} ({self.migration_option})"
+
+
+class TransactionMigrationLine(ConcurrencyModel):
+    """A single line of a transaction migration — typed by line_type."""
+
+    LINE_TYPES = [
+        ("pending_po", "Pending Purchase Order"),
+        ("pending_so", "Pending Sales Order"),
+        ("pending_grn", "Pending Goods Receipt Note"),
+        ("historical_journal", "Historical Journal Entry"),
+        ("historical_ap_invoice", "Historical AP Invoice"),
+        ("historical_ar_invoice", "Historical AR Invoice"),
+    ]
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("valid", "Valid"),
+        ("error", "Error"),
+        ("imported", "Imported"),
+        ("rolled_back", "Rolled Back"),
+    ]
+
+    migration = models.ForeignKey(
+        TransactionMigration,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    line_type = models.CharField(max_length=30, choices=LINE_TYPES)
+    row_number = models.IntegerField(default=0)
+    raw_data = models.JSONField(default=dict, help_text="Original CSV row data")
+    data = models.JSONField(default=dict, help_text="Parsed and validated data")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "core_transaction_migration_line"
+        ordering = ["migration", "line_type", "row_number"]
+        verbose_name = "Transaction Migration Line"
+
+    def __str__(self):
+        return f"{self.line_type} Row {self.row_number} — {self.status}"

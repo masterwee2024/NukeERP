@@ -30,7 +30,7 @@
 | T009c | Industry Template Engine | Load/install industry templates from JSON. Configure modules, menus, workflows, GL accounts for specific industry. | T009b | B | **Done** — [docs/t009c.md](docs/t009c.md) |
 | T009d | Data Migration Framework | CSV import engine, column mapping, validation, import history, rollback, downloadable templates for all entities. | T009 | B, E | **Done** — [docs/t009d.md](docs/t009d.md) |
 | T009e | Opening Balance Migration | Migration wizard for GL, AP, AR, inventory, asset opening balances. Step-by-step with validation. Creates opening entries. | T009d | B, E | **Done** — [docs/t009e.md](docs/t009e.md) |
-| T009f | Transaction Migration | Import pending (open POs, SOs) and historical transactions. Fresh start vs full migration option. | T009d, T009e | B, E | [docs/t009f.md](docs/t009f.md) |
+| T009f | Transaction Migration | Import pending (open POs, SOs) and historical transactions. Fresh start vs full migration option. | T009d, T009e | B, E | **Done** — [docs/t009f.md](docs/t009f.md) |
 
 ---
 
