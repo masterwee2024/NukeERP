@@ -35,6 +35,7 @@ const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NumberingSeriesPage = lazy(() => import("./pages/admin/NumberingSeriesPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
 const NotificationCentrePage = lazy(() => import("./pages/admin/NotificationCentrePage"));
+const ApprovalCenterPage = lazy(() => import("./pages/admin/ApprovalCenterPage"));
 const EmailApprovalExecutePage = lazy(() => import("./pages/EmailApprovalExecutePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -85,6 +86,7 @@ export default function App() {
                     />
                     <Route path="admin/audit-logs" element={<AuditLogPage />} />
                     <Route path="notifications" element={<NotificationCentrePage />} />
+                    <Route path="approvals" element={<ApprovalCenterPage />} />
                   </Route>
                 </Route>
 
