@@ -31,6 +31,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const FieldCustomizerPage = lazy(() => import("./pages/admin/FieldCustomizerPage"));
+const ImportPage = lazy(() => import("./pages/admin/ImportPage"));
 const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NumberingSeriesPage = lazy(() => import("./pages/admin/NumberingSeriesPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
@@ -87,6 +88,7 @@ export default function App() {
                       element={<NumberingSeriesPage />}
                     />
                     <Route path="admin/audit-logs" element={<AuditLogPage />} />
+                    <Route path="admin/import" element={<ImportPage />} />
                     <Route path="notifications" element={<NotificationCentrePage />} />
                     <Route path="approvals" element={<ApprovalCenterPage />} />
                     <Route path="workflows/designer" element={<WorkflowDesignerPage />} />
