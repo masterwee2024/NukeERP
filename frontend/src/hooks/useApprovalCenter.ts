@@ -1,16 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface RequesterBrief {
-  id: string | null;
-  name: string;
-  email: string;
-}
 
 export interface PendingApprovalItem {
   execution_id: string;
@@ -20,51 +10,57 @@ export interface PendingApprovalItem {
   document_number: string;
   workflow_name: string;
   module: string;
-  requester: RequesterBrief | null;
+  requester: { id: string; name: string; email: string } | null;
   company_id: string;
   company_name: string;
   created_at: string;
   overdue: boolean;
 }
 
-export interface ModuleStats {
-  module: string;
-  document_type: string;
-  count: number;
-}
-
 export interface ApprovalStats {
   total_pending: number;
   overdue_count: number;
   avg_resolution_hours: number | null;
-  by_module: ModuleStats[];
+  by_module: { module: string; document_type: string; count: number }[];
 }
 
-export interface ActionOut {
+export interface ApprovalContext {
+  execution_id: string;
+  workflow: { id: string; name: string; module: string; document_type: string };
+  document_type: string;
+  document_id: string;
+  document_data: Record<string, unknown> | null;
+  status: string;
+  current_node: { node_id: string | null; label: string; node_type: string };
+  requester: { id: string; name: string; email: string } | null;
+  company: { id: string; name: string };
+  started_at: string;
+  completed_at: string | null;
+  steps: {
+    step_id: string;
+    node_label: string;
+    node_type: string;
+    approver: { id: string | null; name: string; email: string } | null;
+    action: string;
+    comment: string;
+    status: string;
+    timestamp: string;
+  }[];
+  metadata: Record<string, unknown>;
+}
+
+export interface QuickActionResponse {
   execution_id: string;
   status: string;
   message: string;
   step_id?: string;
-  delegated_to?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
-export function useApprovalCenterList(opts?: {
-  module?: string;
-  document_type?: string;
-}) {
-  const params = new URLSearchParams();
-  if (opts?.module) params.set("module", opts.module);
-  if (opts?.document_type) params.set("document_type", opts.document_type);
-
+export function useApprovalCenter() {
   return useQuery({
-    queryKey: ["approval-center-list", opts?.module, opts?.document_type],
+    queryKey: ["approval-center"],
     queryFn: async () => {
-      const qs = params.toString() ? `?${params.toString()}` : "";
-      const { data } = await api.get(`/core/approval-center/${qs}`);
+      const { data } = await api.get("/core/approval-center/");
       return data as { count: number; results: PendingApprovalItem[] };
     },
     refetchInterval: 30_000,
@@ -82,124 +78,107 @@ export function useApprovalCenterStats() {
   });
 }
 
-export function useApprovalCenterContext(executionId: string | null) {
+export function useApprovalContext(executionId: string | undefined) {
   return useQuery({
-    queryKey: ["approval-center-context", executionId],
+    queryKey: ["approval-context", executionId],
     queryFn: async () => {
-      const { data } = await api.get(
-        `/core/approval-center/${executionId}/context/`
-      );
-      return data;
+      if (!executionId) throw new Error("Execution ID required");
+      const { data } = await api.get(`/core/approval-center/${executionId}/context/`);
+      return data as ApprovalContext;
     },
     enabled: !!executionId,
   });
 }
 
-export function useApprovalCenterActions(opts?: {
-  onSuccess?: () => void;
-  onError?: (msg: string) => void;
-}) {
-  const { confirm } = useConfirm();
+export function useQuickApprove() {
   const queryClient = useQueryClient();
+  const { confirm } = useConfirm();
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["approval-center-list"] });
-    queryClient.invalidateQueries({ queryKey: ["approval-center-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["approval-center-context"] });
-  };
-
-  const approveMutation = useMutation({
+  return useMutation({
     mutationFn: async (params: { execution_id: string; comment?: string }) => {
       const confirmed = await confirm({
         title: "Approve",
-        message: "Are you sure you want to approve this document?",
+        message: "Are you sure you want to approve this?",
         variant: "warning",
         confirmText: "Approve",
       });
       if (!confirmed) throw new Error("cancelled");
+
       const { data } = await api.post(
         `/core/approval-center/${params.execution_id}/quick-approve/`,
-        { comment: params.comment ?? "" }
+        { comment: params.comment || "" }
       );
-      return data as ActionOut;
+      return data as QuickActionResponse;
     },
     onSuccess: () => {
-      invalidate();
-      opts?.onSuccess?.();
-    },
-    onError: (err: { response?: { data?: { detail?: string } }; message?: string }) => {
-      if (err.message === "cancelled") return;
-      opts?.onError?.(err.response?.data?.detail ?? "Failed to approve");
+      queryClient.invalidateQueries({ queryKey: ["approval-center"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-center-stats"] });
     },
   });
+}
 
-  const rejectMutation = useMutation({
+export function useQuickReject() {
+  const queryClient = useQueryClient();
+  const { confirm } = useConfirm();
+
+  return useMutation({
     mutationFn: async (params: { execution_id: string; comment: string }) => {
       const confirmed = await confirm({
         title: "Reject",
-        message: "Rejecting this document cannot be undone. Continue?",
+        message: "Are you sure you want to reject this?",
         variant: "danger",
         confirmText: "Reject",
       });
       if (!confirmed) throw new Error("cancelled");
+
       const { data } = await api.post(
         `/core/approval-center/${params.execution_id}/quick-reject/`,
         { comment: params.comment }
       );
-      return data as ActionOut;
+      return data as QuickActionResponse;
     },
     onSuccess: () => {
-      invalidate();
-      opts?.onSuccess?.();
-    },
-    onError: (err: { response?: { data?: { detail?: string } }; message?: string }) => {
-      if (err.message === "cancelled") return;
-      opts?.onError?.(err.response?.data?.detail ?? "Failed to reject");
+      queryClient.invalidateQueries({ queryKey: ["approval-center"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-center-stats"] });
     },
   });
+}
 
-  const delegateMutation = useMutation({
-    mutationFn: async (params: {
-      execution_id: string;
-      delegated_to_id: string;
-      comment?: string;
-    }) => {
+export function useBatchApprove() {
+  const queryClient = useQueryClient();
+  const { confirm } = useConfirm();
+
+  return useMutation({
+    mutationFn: async (params: { execution_ids: string[]; comment?: string }) => {
       const confirmed = await confirm({
-        title: "Delegate",
-        message: "Delegate this approval to the selected user?",
-        variant: "info",
-        confirmText: "Delegate",
+        title: "Batch Approve",
+        message: `Are you sure you want to approve ${params.execution_ids.length} items?`,
+        variant: "warning",
+        confirmText: "Approve All",
       });
       if (!confirmed) throw new Error("cancelled");
-      const { data } = await api.post(
-        `/core/approval-center/${params.execution_id}/delegate/`,
-        {
-          delegated_to_id: params.delegated_to_id,
-          comment: params.comment ?? "",
+
+      const results: QuickActionResponse[] = [];
+      for (const execution_id of params.execution_ids) {
+        try {
+          const { data } = await api.post(
+            `/core/approval-center/${execution_id}/quick-approve/`,
+            { comment: params.comment || "" }
+          );
+          results.push(data as QuickActionResponse);
+        } catch {
+          results.push({
+            execution_id,
+            status: "error",
+            message: "Failed to approve",
+          });
         }
-      );
-      return data as ActionOut;
+      }
+      return results;
     },
     onSuccess: () => {
-      invalidate();
-      opts?.onSuccess?.();
-    },
-    onError: (err: { response?: { data?: { detail?: string } }; message?: string }) => {
-      if (err.message === "cancelled") return;
-      opts?.onError?.(err.response?.data?.detail ?? "Failed to delegate");
+      queryClient.invalidateQueries({ queryKey: ["approval-center"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-center-stats"] });
     },
   });
-
-  return {
-    approve: approveMutation.mutateAsync,
-    reject: rejectMutation.mutateAsync,
-    delegate: delegateMutation.mutateAsync,
-    isApproving: approveMutation.isPending,
-    isRejecting: rejectMutation.isPending,
-    isDelegating: delegateMutation.isPending,
-    isPending:
-      approveMutation.isPending ||
-      rejectMutation.isPending ||
-      delegateMutation.isPending,
-  };
 }
