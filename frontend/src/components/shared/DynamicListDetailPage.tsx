@@ -7,7 +7,9 @@ import FormPageLayout from "@/components/shared/FormPageLayout";
 import DynamicDetailPage from "@/components/dynamic/DynamicDetailPage";
 import DynamicFormPage from "@/components/dynamic/DynamicFormPage";
 import api from "@/lib/api";
-import { ArrowLeft, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
+import ImportModal from "@/components/shared/ImportModal";
 
 interface ActionSlots {
   detailHeader?: (
@@ -25,16 +27,20 @@ interface Props {
   title?: string;
   /** Extra action slots */
   actionSlots?: ActionSlots;
+  /** Show Import button for CSV data import */
+  enableImport?: boolean;
 }
 
 export default function DynamicListDetailPage({
   configKey,
   title: titleProp,
   actionSlots,
+  enableImport = false,
 }: Props) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { confirm } = useConfirm();
+  const [showImport, setShowImport] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("id");
@@ -284,16 +290,33 @@ export default function DynamicListDetailPage({
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-secondary-900">{title}</h1>
-          {hasCreate && (
-            <button
-              onClick={() => navigate("create")}
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-            >
-              + New
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {enableImport && (
+              <button
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center gap-1 rounded-lg border border-secondary-300 px-3 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50"
+              >
+                <Upload className="h-4 w-4" /> Import
+              </button>
+            )}
+            {hasCreate && (
+              <button
+                onClick={() => navigate("create")}
+                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              >
+                + New
+              </button>
+            )}
+          </div>
         </div>
         {renderListView()}
+        {showImport && config && (
+          <ImportModal
+            configKey={configKey}
+            onClose={() => setShowImport(false)}
+            onImportComplete={() => queryClient.invalidateQueries({ queryKey: [config.api_endpoint] })}
+          />
+        )}
       </div>
     );
   }
@@ -312,16 +335,33 @@ export default function DynamicListDetailPage({
         <div className="p-4">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-xl font-bold text-secondary-900">{title}</h1>
-            {hasCreate && (
-              <button
-                onClick={() => navigate("create")}
-                className="inline-flex items-center justify-center rounded-lg bg-primary-600 p-2 text-white hover:bg-primary-700"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {enableImport && (
+                <button
+                  onClick={() => setShowImport(true)}
+                  className="inline-flex items-center justify-center rounded-lg border border-secondary-300 p-2 text-secondary-700 hover:bg-secondary-50"
+                >
+                  <Upload className="h-5 w-5" />
+                </button>
+              )}
+              {hasCreate && (
+                <button
+                  onClick={() => navigate("create")}
+                  className="inline-flex items-center justify-center rounded-lg bg-primary-600 p-2 text-white hover:bg-primary-700"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              )}
+            </div>
           </div>
           {renderListView()}
+          {showImport && config && (
+            <ImportModal
+              configKey={configKey}
+              onClose={() => setShowImport(false)}
+              onImportComplete={() => queryClient.invalidateQueries({ queryKey: [config.api_endpoint] })}
+            />
+          )}
         </div>
       );
     }
