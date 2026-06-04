@@ -98,6 +98,50 @@ pyERP/
 - **Always filter by active company**: transactions by company_id, master data by assignment
 - **Never hardcode company_id** — use `request.user.current_company_id` or middleware
 
+### Bulk Company Assignment Pattern (STANDARD)
+
+Every master-data-to-company assignment uses this unified bulk pattern. Do NOT build per-record junction CRUD.
+
+**Backend API:**
+```
+GET  /api/v1/{module}/{resource}/assignments/{company_id}/
+     → { "count": N, "results": [{ "id": "uuid", "code": "...", "name": "...", "is_assigned": true/false }, ...] }
+     → Returns ALL master records with their assignment status for the given company
+
+POST /api/v1/{module}/{resource}/assignments/{company_id}/
+     → body: { "record_ids": ["uuid1", "uuid2", ...] }
+     → Replaces ALL assignments atomically (clear + insert in transaction)
+     → Returns { "assigned_count": N }
+```
+
+**Frontend UI:**
+- Company picker (dropdown or current-company context)
+- Full list of all master records with checkboxes
+- "Select All" / "Deselect All" toggle
+- Save button triggers `POST` with the full set of selected IDs
+- Uses `useAction()` hook for confirm → execute → result cycle
+- Loading state while fetching, disabled save while submitting
+
+**Service Pattern (example for Account → AccountCompany):**
+```python
+@transaction.atomic
+def set_company_assignments(company_id: UUID, record_ids: list[UUID]):
+    """Replace all company assignments for a master data type."""
+    CompanyAssignmentModel.objects.filter(company_id=company_id).delete()
+    assignments = [
+        CompanyAssignmentModel(record_id=rid, company_id=company_id)
+        for rid in record_ids
+    ]
+    CompanyAssignmentModel.objects.bulk_create(assignments)
+    return len(assignments)
+```
+
+**Rules:**
+- `POST` replaces all — no incremental add/remove at the API level (avoids sync bugs)
+- Always wrap in `@transaction.atomic` with `select_for_update()` on the company row
+- Assignments are per-company, not per-user
+- List endpoint returns ALL records (global master) with `is_assigned` boolean — frontend decides what to show
+
 ### Dynamic Menu System
 - Menu items are **database records**, not hardcoded in React
 - New menu = insert `Menu` record → appears in sidebar immediately
