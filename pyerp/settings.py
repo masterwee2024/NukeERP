@@ -33,6 +33,7 @@ ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 # ---------------------------------------------------------------------------
 
 DJANGO_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,6 +43,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    "channels",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
@@ -269,3 +271,17 @@ AUTH_USER_MODEL = "core.User"
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+# ---------------------------------------------------------------------------
+# ASGI and Django Channels
+# ---------------------------------------------------------------------------
+ASGI_APPLICATION = "pyerp.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env("REDIS_URL", default="redis://localhost:6379/0")],
+        },
+    },
+}

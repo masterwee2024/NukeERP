@@ -240,19 +240,26 @@ export default function DynamicListDetailPage({
   }
 
   function renderFormView() {
-    if (view === "create") {
-      return (
-        <div>
-          <h2 className="mb-4 text-lg font-semibold text-secondary-900">New {title}</h2>
-          <DynamicFormPage config={config!} />
-        </div>
-      );
-    }
     return (
-      <div>
-        <h2 className="mb-4 text-lg font-semibold text-secondary-900">Edit {title}</h2>
-        <DynamicFormPage config={config!} recordId={selectedId ?? undefined} />
-      </div>
+      <DynamicFormPage
+        config={config!}
+        recordId={view === "edit" ? (selectedId ?? undefined) : undefined}
+        showTitle={!isMobile}
+        onCancel={() => {
+          if (selectedId && view === "edit") {
+            navigate("detail", selectedId);
+          } else {
+            navigate("list");
+          }
+        }}
+        onSuccess={(rec) => {
+          if (rec?.id) {
+            navigate("detail", String(rec.id));
+          } else {
+            navigate("list");
+          }
+        }}
+      />
     );
   }
 
