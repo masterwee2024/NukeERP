@@ -297,6 +297,7 @@ docs(T005): update task spec with menu API details
 - [ ] 8. **Update task spec** — mark deliverables as done, fill test results table
 - [ ] 9. **Create PR** — DELEGATE to git agent: "create PR for TXXX"
 - [ ] 10. **Merge** — squash-merge after CI passes
+- [ ] 11. **Rebuild Docker (if needed)** — DELEGATE to Docker agent: "rebuild containers". Only required if `pyproject.toml`, `Dockerfile`, `package*.json`, or root-level `.py` files changed. If only `apps/` or `frontend/src/` changed, skip — volume mounts handle hot-reload.
 
 **If you skip step 3 or 6, you are violating project rules.**
 
@@ -405,6 +406,28 @@ All admin CRUD and list-detail UI pages are delegated to the **UI builder agent*
 
 **Do NOT build admin CRUD pages manually** — always use the agent for consistent responsive design.
 
+### Docker Rebuild Agent
+
+All container rebuild/restart is delegated to the **Docker agent** (`.opencode/agent/docker-rebuild.md`).
+
+**Trigger phrases:** "rebuild containers", "restart docker", "rebuild docker"
+
+**When to use:**
+- After merging a PR that changed `pyproject.toml` — forces `--no-cache` rebuild to pick up new Python deps
+- After merging a PR that changed `Dockerfile` or `docker-compose.yml`
+- After merging a PR that changed `frontend/package*.json` — installs npm deps inside the container
+
+**When NOT to use:**
+- If only `apps/` or `frontend/src/` changed — volume mounts provide hot-reload automatically
+
+**What it does:**
+| Step | Action | Command |
+|---|---|---|
+| 1 | Detect changes | `git diff master --name-only` |
+| 2 | Decision | Analyze which files changed → pick rebuild action |
+| 3 | Execute | Run docker compose build/restart/exec commands |
+| 4 | Verify | Django system check + migrations + frontend build |
+
 ## Malaysian Compliance Gotchas
 
 - **SST**: Sales tax (5-10%), Service tax (6%) — not GST. SST-02 return.
@@ -438,6 +461,12 @@ This project uses Graphify for knowledge graph generation. Before scanning the c
 11. **Forgetting company filter** — master data queries must filter by company assignment, not company_id
 12. **API auth uses JWTAuth only** — `SessionAuth` was removed from the auth stack. All API calls must provide `Authorization: Bearer <token>`. Tests must use JWT tokens (via `AccessToken.for_user(user)`), not `force_login()`. CSRF is handled by Django's standard `CsrfViewMiddleware` — API routes are considered safe because they don't use session cookies.
 13. **Docker node_modules is isolated** — When adding new npm dependencies (via PR merge), the Docker container's `node_modules` is separate from the host's. Run `docker compose exec frontend npm install` after merging. If Vite dev server was already running, it should auto-reload; if not, a hard browser refresh fixes it.
+14. **UUID PKs everywhere, never `int` for IDs** — Every model inherits `ConcurrencyModel` → UUID primary key. In Ninja schemas, ALL ID fields (`id`, `user_id`, `sender_id`, `reply_to_id`, `channel_id`, `message_id`, etc.) must be declared as `str` with `resolve_*` methods that call `str(obj.id)`. Never use `int` for ID fields — Ninja/Pydantic strict validation rejects them with 422 errors. The service layer type hints must match too (`user_id: UUID`, `message_id: UUID`, never `int`).
+15. **Ninja schema datetime = `datetime`, not `str`** — When returning model instances directly from endpoints, use `datetime` type (not `str`) for `created_at`, `updated_at`, `joined_at` etc. in output schemas. Ninja serializes `datetime` objects to ISO strings automatically. Declaring them as `str` causes 422 validation errors because the model field is a `datetime` object.
+16. **Company scoping on EVERY endpoint** — Every API endpoint must call `_require_company_id(request)` and filter channel/record lookups by `company_id`. Membership checks (`_get_member()`) are a second line of defense but don't replace company scoping — a user from Company A should get 404 (not 403) when accessing Company B's channel by UUID.
+17. **Docker: `pyproject.toml` changes need `--no-cache` rebuild** — Only `apps/` and `frontend/` directories are volume-mounted in Docker. Root-level files (`pyproject.toml`, `pyerp/`, `tests/`) are baked into the image. Adding new Python deps or modifying project config requires `docker compose build --no-cache django` to invalidate the COPY-layer cache. Standard `docker compose build` reuses cached layers and silently ignores the change.
+18. **File upload tests: use Django Client, not Ninja TestClient** — The Ninja `TestClient` doesn't reliably populate `request.FILES`. For API tests involving file uploads, use Django's `test.Client` directly with `HTTP_AUTHORIZATION` header and `HTTP_X_COMPANY_ID` for auth/company context.
+19. **Never bare `except Exception: pass`** — Even in "fail gracefully" paths, always log the exception (`logger.warning(...)`) so bugs aren't silently masked during development.
 
 ## Industry Modules (Extensible Platform)
 
