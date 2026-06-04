@@ -57,7 +57,7 @@ class TestAuditLogModel:
         assert log.ip_address == "127.0.0.1"
         assert log.company == company
         assert log.timestamp is not None
-        assert str(log) == f"create core.Company #{company.id}"
+        assert str(log) == f"[crud] create core.Company #{company.id}"
 
     def test_audit_log_no_user(self, company):
         log = AuditLog.objects.create(

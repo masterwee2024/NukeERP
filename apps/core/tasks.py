@@ -94,3 +94,16 @@ def cleanup_expired_tokens():
         expires_at__lt=timezone.now()
     ).delete()
     logger.info(f"Cleaned up {deleted_count} expired approval tokens.")
+
+
+@shared_task
+def archive_audit_logs():
+    """Monthly job to archive audit logs older than the retention period."""
+    from apps.core.services.advanced_audit_service import archive_old_logs
+
+    result = archive_old_logs()
+    logger.info(
+        "Archived %d audit logs across %d companies",
+        result["deleted_count"],
+        result["companies_processed"],
+    )

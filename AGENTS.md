@@ -2,6 +2,10 @@
 
 > Compact reference for AI agents working in this codebase. Every line answers: "Would an agent likely miss this without help?"
 
+## CRITICAL: Check Graphify First
+
+**Agents and sub-agents MUST NOT scan the codebase directly before reading the graphify knowledge graph.** Always check `graphify-out/graph.json` or `graphify-out/GRAPH_REPORT.md` first for module-level community detection and architecture context. Scanning the full codebase without the graph is wasteful and prohibited. If the graph does not exist, run `/graphify <path>` to build it before proceeding.
+
 ---
 
 ## Quick Commands

@@ -1011,6 +1011,16 @@ class AuditLog(models.Model):
         ("delete", "Delete"),
     ]
 
+    CATEGORY_CHOICES = [
+        ("crud", "CRUD"),
+        ("login", "Login"),
+        ("export", "Export"),
+        ("config", "Configuration"),
+        ("file", "File"),
+        ("approval", "Approval"),
+        ("bulk", "Bulk Operation"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     model_name = models.CharField(
         max_length=200,
@@ -1024,7 +1034,19 @@ class AuditLog(models.Model):
         help_text="String representation of the record's PK",
     )
     action = models.CharField(max_length=10, choices=ACTION_CHOICES, db_index=True)
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default="crud",
+        db_index=True,
+        help_text="Audit category for grouping and filtering",
+    )
     changes = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional context (export format, file name, etc.)",
+    )
     user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -1040,6 +1062,14 @@ class AuditLog(models.Model):
         blank=True,
         related_name="audit_logs",
     )
+    bulk_operation = models.ForeignKey(
+        "AuditLogBulk",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        help_text="Links individual audit entries to a parent bulk operation",
+    )
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -1049,7 +1079,116 @@ class AuditLog(models.Model):
         verbose_name_plural = "Audit Logs"
 
     def __str__(self):
-        return f"{self.action} {self.model_name} #{self.record_id}"
+        return f"[{self.category}] {self.action} {self.model_name} #{self.record_id}"
+
+
+class AuditLogBulk(models.Model):
+    """Tracks bulk operations (bulk update, bulk delete, bulk import)."""
+
+    OPERATION_TYPES = [
+        ("bulk_update", "Bulk Update"),
+        ("bulk_delete", "Bulk Delete"),
+        ("bulk_import", "Bulk Import"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    operation_type = models.CharField(max_length=20, choices=OPERATION_TYPES)
+    description = models.CharField(max_length=500, blank=True, default="")
+    record_count = models.PositiveIntegerField(default=0)
+    affected_models = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of model names affected",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_operations",
+    )
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bulk_operations",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "core_audit_log_bulk"
+        ordering = ["-created_at"]
+        verbose_name = "Audit Log Bulk Operation"
+        verbose_name_plural = "Audit Log Bulk Operations"
+
+    def __str__(self):
+        return f"{self.operation_type} — {self.record_count} records"
+
+
+class AuditRetention(models.Model):
+    """Configurable audit log retention policy per company."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    company = models.OneToOneField(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="audit_retention",
+    )
+    retention_years = models.PositiveIntegerField(default=7)
+    auto_archive = models.BooleanField(default=True)
+    last_archive_date = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "core_audit_retention"
+        verbose_name = "Audit Retention Policy"
+        verbose_name_plural = "Audit Retention Policies"
+
+    def __str__(self):
+        return f"{self.company} — {self.retention_years} years"
+
+
+class AuditExport(models.Model):
+    """Tracks audit log export operations."""
+
+    EXPORT_TYPES = [
+        ("csv", "CSV"),
+        ("excel", "Excel"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    export_type = models.CharField(max_length=10, choices=EXPORT_TYPES)
+    filters = models.JSONField(default=dict, blank=True)
+    record_count = models.PositiveIntegerField(default=0)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_exports",
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_exports",
+    )
+    file_path = models.CharField(max_length=500, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "core_audit_export"
+        ordering = ["-created_at"]
+        verbose_name = "Audit Export"
+        verbose_name_plural = "Audit Exports"
+
+    def __str__(self):
+        return f"{self.export_type} export — {self.record_count} records"
 
 
 class NotificationType(ConcurrencyModel):
