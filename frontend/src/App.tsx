@@ -32,6 +32,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const FieldCustomizerPage = lazy(() => import("./pages/admin/FieldCustomizerPage"));
 const ImportPage = lazy(() => import("./pages/admin/ImportPage"));
+const MigrationWizardPage = lazy(() => import("./pages/admin/MigrationWizardPage"));
 const EmailSettingsPage = lazy(() => import("./pages/admin/EmailSettingsPage"));
 const NumberingSeriesPage = lazy(() => import("./pages/admin/NumberingSeriesPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
@@ -89,6 +90,7 @@ export default function App() {
                     />
                     <Route path="admin/audit-logs" element={<AuditLogPage />} />
                     <Route path="admin/import" element={<ImportPage />} />
+                    <Route path="admin/opening-balance" element={<MigrationWizardPage />} />
                     <Route path="notifications" element={<NotificationCentrePage />} />
                     <Route path="approvals" element={<ApprovalCenterPage />} />
                     <Route path="workflows/designer" element={<WorkflowDesignerPage />} />
