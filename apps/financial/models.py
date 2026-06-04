@@ -148,3 +148,88 @@ class JournalEntryLine(ConcurrencyModel):
 
     def __str__(self):
         return f"Line {self.line_number}: {self.account.code} DR={self.debit} CR={self.credit}"
+
+
+class GeneralLedger(models.Model):
+    """Immutable GL entry created when a journal entry is posted."""
+
+    journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.CASCADE, related_name="gl_entries"
+    )
+    journal_entry_line = models.ForeignKey(
+        JournalEntryLine, on_delete=models.CASCADE, related_name="gl_entries"
+    )
+    account = models.ForeignKey(
+        Account, on_delete=models.PROTECT, related_name="gl_entries"
+    )
+    date = models.DateField(db_index=True)
+    debit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    credit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    balance = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="gl_entries"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "financial_general_ledger"
+        ordering = ["date", "created_at"]
+        verbose_name = "General Ledger Entry"
+        verbose_name_plural = "General Ledger Entries"
+        indexes = [
+            models.Index(fields=["account", "date"]),
+            models.Index(fields=["company", "date"]),
+        ]
+
+    def __str__(self):
+        return f"GL: {self.account.code} DR={self.debit} CR={self.credit}"
+
+
+class TaxCode(ConcurrencyModel):
+    """Tax code definition — global master data."""
+
+    TAX_TYPES = [
+        ("sales", "Sales Tax"),
+        ("service", "Service Tax"),
+        ("exempt", "Exempt"),
+        ("zero_rated", "Zero-Rated"),
+        ("out_of_scope", "Out of Scope"),
+        ("purchase", "Purchase / Input Tax"),
+    ]
+
+    code = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=200)
+    rate_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_type = models.CharField(max_length=20, choices=TAX_TYPES)
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "financial_tax_code"
+        ordering = ["code"]
+        verbose_name = "Tax Code"
+        verbose_name_plural = "Tax Codes"
+
+    def __str__(self):
+        return f"{self.code} ({self.rate_percent}%)"
+
+
+class TaxRate(ConcurrencyModel):
+    """Tax rate with effective dating for rate changes."""
+
+    tax_code = models.ForeignKey(
+        TaxCode, on_delete=models.CASCADE, related_name="rates"
+    )
+    rate_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    effective_from = models.DateField()
+    effective_to = models.DateField(null=True, blank=True)
+    is_current = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "financial_tax_rate"
+        ordering = ["-effective_from"]
+        verbose_name = "Tax Rate"
+        verbose_name_plural = "Tax Rates"
+
+    def __str__(self):
+        return f"{self.tax_code.code} @ {self.rate_percent}% from {self.effective_from}"

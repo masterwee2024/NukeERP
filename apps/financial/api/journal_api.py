@@ -16,6 +16,7 @@ from apps.financial.services.journal_service import (
     reverse_journal_entry,
     update_journal_entry,
 )
+from apps.financial.services.posting_service import PostingError, post_journal_entry
 
 logger = logging.getLogger(__name__)
 
@@ -305,6 +306,24 @@ def delete(request, id: UUID):
         delete_journal_entry(id)
         return {"success": True}
     except ValueError as e:
+        raise HttpError(400, str(e)) from e
+
+
+@router.post("/journal-entries/{id}/post/", response=JournalEntryOut)
+def post(request, id: UUID):
+    """Post a draft journal entry to the General Ledger."""
+    try:
+        entry = post_journal_entry(id)
+        return (
+            JournalEntry.objects.select_related("created_by")
+            .prefetch_related(
+                models.Prefetch(
+                    "lines", JournalEntryLine.objects.select_related("account")
+                )
+            )
+            .get(id=entry.id)
+        )
+    except PostingError as e:
         raise HttpError(400, str(e)) from e
 
 
