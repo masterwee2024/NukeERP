@@ -162,6 +162,15 @@ def list_templates(request):
     return import_service.list_templates()
 
 
+@router.get("/templates/by-page/{page_key}/", response=TemplateOut)
+def get_template_by_page(request, page_key: str):
+    """Get the import template matching a PageConfig's entity_model."""
+    template = import_service.get_template_by_page(page_key)
+    if not template:
+        raise HttpError(404, "No import template found for this page")
+    return template
+
+
 @router.get("/templates/{entity_type}/", response=TemplateOut)
 def get_template(request, entity_type: str):
     """Get a specific template with column definitions."""

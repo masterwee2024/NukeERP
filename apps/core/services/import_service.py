@@ -346,16 +346,41 @@ def parse_csv(file_content: str) -> tuple[list[str], list[dict[str, str]]]:
 
 def _resolve_model_name(entity_type: str) -> str | None:
     """Map entity_type to a Django model name for import."""
-    mapping = {
-        "chart-of-accounts": "financial.Account",
-        "items": "scm.Item",
-        "customers": "crm.Customer",
-        "vendors": "scm.Vendor",
-        "employees": "hrm.Employee",
-        "fixed-assets": "assets.FixedAsset",
-        "exchange-rates": "financial.ExchangeRate",
-    }
+    mapping = _MODEL_MAPPING
     return mapping.get(entity_type)
+
+
+_MODEL_MAPPING: dict[str, str] = {
+    "chart-of-accounts": "financial.Account",
+    "items": "scm.Item",
+    "customers": "crm.Customer",
+    "vendors": "scm.Vendor",
+    "employees": "hrm.Employee",
+    "fixed-assets": "assets.FixedAsset",
+    "exchange-rates": "financial.ExchangeRate",
+}
+
+
+def _resolve_entity_type_from_model(model_name: str) -> str | None:
+    """Reverse map from Django model name (e.g. 'scm.Item') to entity_type (e.g. 'items')."""
+    reverse_mapping = {v: k for k, v in _MODEL_MAPPING.items()}
+    return reverse_mapping.get(model_name)
+
+
+def get_template_by_page(page_key: str) -> ImportTemplate | None:
+    """Find an import template matching the PageConfig's entity_model."""
+    from apps.core.models import PageConfig
+
+    try:
+        config = PageConfig.objects.get(page_key=page_key)
+    except PageConfig.DoesNotExist:
+        return None
+    if not config.entity_model:
+        return None
+    entity_type = _resolve_entity_type_from_model(config.entity_model)
+    if not entity_type:
+        return None
+    return get_template(entity_type)
 
 
 def create_job(
