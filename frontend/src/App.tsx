@@ -41,6 +41,9 @@ const ApprovalCenterPage = lazy(() => import("./pages/admin/ApprovalCenterPage")
 const AuditDashboardPage = lazy(() => import("./pages/admin/AuditDashboardPage"));
 const AuditRetentionSettingsPage = lazy(() => import("./pages/admin/AuditRetentionSettingsPage"));
 const WorkflowDesignerPage = lazy(() => import("./pages/WorkflowDesignerPage"));
+const AccountTreePage = lazy(() => import("./pages/financial/AccountTreePage"));
+const JournalEntryPage = lazy(() => import("./pages/financial/JournalEntryPage"));
+const TaxCodePage = lazy(() => import("./pages/financial/TaxCodePage"));
 const MessagingPage = lazy(() => import("./pages/MessagingPage"));
 const EmailApprovalExecutePage = lazy(() => import("./pages/EmailApprovalExecutePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -72,6 +75,10 @@ export default function App() {
                   <Route path="/app" element={<AppLayout />}>
                     <Route index element={<Navigate to="/app/dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="financial" element={<Dashboard />} />
+                    <Route path="financial/accounts" element={<AccountTreePage />} />
+                    <Route path="financial/journal-entries" element={<JournalEntryPage />} />
+                    <Route path="financial/tax-codes" element={<TaxCodePage />} />
                     <Route path="financial/*" element={<Dashboard />} />
                     <Route path="assets/*" element={<Dashboard />} />
                     <Route path="treasury/*" element={<Dashboard />} />
