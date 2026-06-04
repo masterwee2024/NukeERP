@@ -1,0 +1,64 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .kpi-card {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+  }
+  .kpi-card .kpi-number {
+    font-size: 2rem;
+    font-weight: 700;
+    display: block;
+  }
+  .kpi-card .kpi-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{% trans 'Dashboard' %}</h1>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <span class="kpi-number">{{ company_count }}</span>
+    <span class="kpi-label">{% trans 'Companies' %}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-number">{{ user_count }}</span>
+    <span class="kpi-label">{% trans 'Users' %}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-number">{{ role_count }}</span>
+    <span class="kpi-label">{% trans 'Roles' %}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-number">{{ audit_log_count }}</span>
+    <span class="kpi-label">{% trans 'Audit Log Entries' %}</span>
+  </div>
+</div>
+
+<div style="margin-top: 2rem;">
+  <h2>{% trans 'Quick Actions' %}</h2>
+  <ul style="list-style: none; padding: 0;">
+    <li><a href="{% url 'admin:core_user_changelist' %}">{% trans 'Manage Users' %}</a></li>
+    <li><a href="{% url 'admin:core_company_changelist' %}">{% trans 'Manage Companies' %}</a></li>
+    <li><a href="{% url 'admin:core_role_changelist' %}">{% trans 'Manage Roles' %}</a></li>
+    <li><a href="{% url 'admin:core_auditlog_changelist' %}">{% trans 'View Audit Log' %}</a></li>
+  </ul>
+</div>
+{% endblock %}
