@@ -28,7 +28,7 @@
 | T009a | Document Attachments | Global attachment service — any record can have file attachments. Upload, download, preview, delete. Used by invoices, employees, items, etc. | T009 | B | [docs/t009a.md](docs/t009a.md) |
 | T009b | Module Plugin Interface | Module registration system, signal bus for inter-module communication, extension point documentation, module dependency management. | T009 | B | [docs/t009b.md](docs/t009b.md) |
 | T009c | Industry Template Engine | Load/install industry templates from JSON. Configure modules, menus, workflows, GL accounts for specific industry. | T009b | B | [docs/t009c.md](docs/t009c.md) |
-| T009d | Data Migration Framework | CSV import engine, column mapping, validation, import history, rollback, downloadable templates for all entities. | T009 | B, E | [docs/t009d.md](docs/t009d.md) |
+| T009d | Data Migration Framework | CSV import engine, column mapping, validation, import history, rollback, downloadable templates for all entities. | T009 | B, E | **Done** — [docs/t009d.md](docs/t009d.md) |
 | T009e | Opening Balance Migration | Migration wizard for GL, AP, AR, inventory, asset opening balances. Step-by-step with validation. Creates opening entries. | T009d | B, E | [docs/t009e.md](docs/t009e.md) |
 | T009f | Transaction Migration | Import pending (open POs, SOs) and historical transactions. Fresh start vs full migration option. | T009d, T009e | B, E | [docs/t009f.md](docs/t009f.md) |
 
@@ -38,10 +38,10 @@
 
 | ID | Task | Description | Depends | Tests | Detail |
 |---|---|---|---|---|---|
-| T010 | Page Config Engine | Database-driven page configuration system. `PageConfig` + `PageConfigField` models with responsive view config. CRUD API. Seed data for all modules. | T009 | B, E | [docs/t010.md](docs/t010.md) |
-| T011 | Dynamic Page Renderer | Generic React components: DynamicFormPage, DynamicListPage, DynamicDetailPage, DynamicDashboardPage. Responsive rendering (table→card on mobile). 20+ field types. Validation. Conditional display. Company-aware filtering. | T010 | F, E | [docs/t011.md](docs/t011.md) |
-| T011a | Dynamic Page Config Rendering Improvements | Implement optimizations: react-hook-form migration, URL parameter routing, dynamic Zod validation, file/image upload support, concurrency control in actions, caching/re-render optimizations. | T011 | F | [docs/t011a.md](docs/t011a.md) |
-| T012 | Visual Page Builder UI | Drag-and-drop admin page builder. Component palette, live canvas, property editor with responsive tab. JSON export/import. Clone page config. | T011 | F, E | [docs/t012.md](docs/t012.md) |
+| T010 | Page Config Engine | Database-driven page configuration system. `PageConfig` + `PageConfigField` models with responsive view config. CRUD API. Seed data for all modules. | T009 | B, E | **Done** — [docs/t010.md](docs/t010.md) |
+| T011 | Dynamic Page Renderer | Generic React components: DynamicFormPage, DynamicListPage, DynamicDetailPage, DynamicDashboardPage. Responsive rendering (table→card on mobile). 20+ field types. Validation. Conditional display. Company-aware filtering. | T010 | F, E | **Done** — [docs/t011.md](docs/t011.md) |
+| T011a | Dynamic Page Config Rendering Improvements | Implement optimizations: react-hook-form migration, URL parameter routing, dynamic Zod validation, file/image upload support, concurrency control in actions, caching/re-render optimizations. | T011 | F | **Done** — [docs/t011a.md](docs/t011a.md) |
+| T012 | Field Customizer UI | Form-based field manager for page configs. Add/edit/delete custom fields per page. Field usage check. Custom fields stored in JSONB. | T011 | F | **Done** — [docs/t012.md](docs/t012.md) |
 | T013 | Company & Multi-Company Architecture | `Company` with group hierarchy (parent FK, is_group). `UserCompany` junction. Company Switcher. Master data is global (no company_id FK). Transactions per-company. Company middleware. | T009 | B, E | [docs/t013.md](docs/t013.md) |
 | T014 | Role-Based Access Control (RBAC) | Custom permission model: `Role` → `Permission` (module, action). Assign roles to users. `@permission_required` decorator. UI route guards. Link MenuRole from T005. | T005, T008 | B, F, E | [docs/t014.md](docs/t014.md) |
 | T015 | User Management UI | User CRUD, role assignment, company assignment (via UserCompany), activate/deactivate, password reset by admin, login history. | T014 | F, E | [docs/t015.md](docs/t015.md) |

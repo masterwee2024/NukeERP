@@ -8,6 +8,7 @@ from apps.core.api.audit_api import router as audit_router
 from apps.core.api.auth_api import router as auth_router
 from apps.core.api.company_api import router as company_router
 from apps.core.api.email_settings_api import router as email_settings_router
+from apps.core.api.import_api import router as import_router
 from apps.core.api.menu_api import router as menu_router
 from apps.core.api.messaging_api import router as messaging_router
 from apps.core.api.notification_api import approvals_router
@@ -38,3 +39,4 @@ router.add_router("/approvals/", approvals_router, tags=["approvals"])
 router.add_router("/approval-center/", approval_center_router, tags=["approval-center"])
 router.add_router("/messaging/", messaging_router, tags=["messaging"])
 router.add_router("/admin/", policy_router, tags=["admin"])
+router.add_router("/import/", import_router, tags=["import"])

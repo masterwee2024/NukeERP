@@ -496,6 +496,7 @@ Menus are seeded in `apps/core/management/commands/seed_menus.py`. The `SidebarI
 17. **Docker: `pyproject.toml` changes need `--no-cache` rebuild** — Only `apps/` and `frontend/` directories are volume-mounted in Docker. Root-level files (`pyproject.toml`, `pyerp/`, `tests/`) are baked into the image. Adding new Python deps or modifying project config requires `docker compose build --no-cache django` to invalidate the COPY-layer cache. Standard `docker compose build` reuses cached layers and silently ignores the change.
 18. **File upload tests: use Django Client, not Ninja TestClient** — The Ninja `TestClient` doesn't reliably populate `request.FILES`. For API tests involving file uploads, use Django's `test.Client` directly with `HTTP_AUTHORIZATION` header and `HTTP_X_COMPANY_ID` for auth/company context.
 19. **Never bare `except Exception: pass`** — Even in "fail gracefully" paths, always log the exception (`logger.warning(...)`) so bugs aren't silently masked during development.
+20. **Frontend tests run on host, not in Docker** — The test-runner agent runs `npm run build` on the host, where `node_modules` may have packages the container doesn't. Always verify the frontend build inside Docker after adding new npm packages. The Docker rebuild agent must also check if `package.json` changed but the container's `node_modules` is stale — run `docker compose exec frontend npm install` to sync, then verify with `npm run build --prefix frontend` on the host only after Docker install succeeds.
 
 ## Industry Modules (Extensible Platform)
 

@@ -1368,3 +1368,135 @@ class ApprovalPolicy(ConcurrencyModel):
     def __str__(self):
         scope = "Global" if self.company is None else self.company.code
         return f"{self.name} [{scope}] ({self.module}.{self.document_type})"
+
+
+# ── Import / Data Migration Models ─────────────────────────────────
+
+
+class ImportTemplate(ConcurrencyModel):
+    """Defines an import template for a specific entity type (e.g. Items, Customers)."""
+
+    name = models.CharField(max_length=200)
+    entity_type = models.SlugField(unique=True, help_text="Unique key e.g. 'items'")
+    description = models.TextField(blank=True)
+    column_definitions = models.JSONField(
+        default=list,
+        help_text="List of column dicts: [{name, label, type, required, max_length, fk_model, format_example}]",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "core_import_template"
+        ordering = ["name"]
+        verbose_name = "Import Template"
+        verbose_name_plural = "Import Templates"
+
+    def __str__(self):
+        return self.name
+
+
+class ImportJob(ConcurrencyModel):
+    """Tracks a single CSV import execution."""
+
+    STATUS_CHOICES = [
+        ("uploaded", "Uploaded"),
+        ("validating", "Validating"),
+        ("importing", "Importing"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+        ("rolled_back", "Rolled Back"),
+    ]
+
+    template = models.ForeignKey(
+        ImportTemplate, on_delete=models.CASCADE, related_name="jobs"
+    )
+    file_name = models.CharField(max_length=500)
+    uploaded_by = models.ForeignKey(
+        "User", on_delete=models.SET_NULL, null=True, related_name="import_jobs"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="uploaded")
+    total_rows = models.IntegerField(default=0)
+    success_count = models.IntegerField(default=0)
+    error_count = models.IntegerField(default=0)
+    warning_count = models.IntegerField(default=0)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    company = models.ForeignKey(
+        "Company",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="import_jobs",
+    )
+    error_log = models.TextField(
+        blank=True, help_text="General job-level error messages"
+    )
+
+    class Meta:
+        db_table = "core_import_job"
+        ordering = ["-created_at"]
+        verbose_name = "Import Job"
+        verbose_name_plural = "Import Jobs"
+
+    def __str__(self):
+        return f"{self.template.name} — {self.file_name} ({self.status})"
+
+
+class ImportRow(ConcurrencyModel):
+    """A single row of an import job with validation and import status."""
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("valid", "Valid"),
+        ("error", "Error"),
+        ("imported", "Imported"),
+        ("skipped", "Skipped"),
+    ]
+
+    job = models.ForeignKey(ImportJob, on_delete=models.CASCADE, related_name="rows")
+    row_number = models.IntegerField()
+    raw_data = models.JSONField(default=dict, help_text="Original CSV row data")
+    mapped_data = models.JSONField(default=dict, help_text="Post-mapping data")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    errors = models.JSONField(default=list, blank=True)
+    warnings = models.JSONField(default=list, blank=True)
+    imported_record_id = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        db_table = "core_import_row"
+        ordering = ["job", "row_number"]
+        unique_together = [["job", "row_number"]]
+        verbose_name = "Import Row"
+        verbose_name_plural = "Import Rows"
+
+    def __str__(self):
+        return f"Row {self.row_number} — {self.status}"
+
+
+class ImportHistory(ConcurrencyModel):
+    """Audit log entry for import or rollback actions."""
+
+    ACTION_CHOICES = [
+        ("import", "Import"),
+        ("rollback", "Rollback"),
+    ]
+
+    job = models.ForeignKey(
+        ImportJob, on_delete=models.CASCADE, related_name="history_entries"
+    )
+    entity_type = models.SlugField()
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    record_count = models.IntegerField(default=0)
+    performed_by = models.ForeignKey(
+        "User", on_delete=models.SET_NULL, null=True, related_name="import_history"
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "core_import_history"
+        ordering = ["-created_at"]
+        verbose_name = "Import History"
+        verbose_name_plural = "Import Histories"
+
+    def __str__(self):
+        return f"{self.action} — {self.entity_type} ({self.record_count} records)"
