@@ -410,13 +410,29 @@ export default function ImportPage() {
       </p>
 
       <div className="relative mb-6 max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search templates..."
-          className="w-full rounded-lg border border-secondary-300 py-2 pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
-        />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search templates..."
+              className="w-full rounded-lg border border-secondary-300 py-2 pl-9 pr-3 text-sm focus:border-primary-500 focus:outline-none"
+            />
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                await api.post("/core/import/seed-templates/");
+                queryClient.invalidateQueries({ queryKey: ["import-templates"] });
+              } catch { /* ignore */ }
+            }}
+            className="shrink-0 rounded-lg border border-secondary-300 px-3 py-2 text-xs font-medium text-secondary-600 hover:bg-secondary-50"
+            title="Reload default import templates"
+          >
+            Reload Templates
+          </button>
+        </div>
       </div>
 
       {templatesLoading ? (
