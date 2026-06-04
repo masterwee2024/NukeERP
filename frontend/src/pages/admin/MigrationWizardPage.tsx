@@ -14,12 +14,27 @@ const STEPS = [
   { key: "asset", label: "Fixed Assets", icon: "🏗️" },
 ];
 
+const TX_STEPS = [
+  { key: "pending_po", label: "Pending POs", icon: "📋" },
+  { key: "pending_so", label: "Pending SOs", icon: "📋" },
+  { key: "pending_grn", label: "Pending GRNs", icon: "📋" },
+  { key: "historical_journal", label: "Journals", icon: "📓" },
+  { key: "historical_ap_invoice", label: "AP Invoices", icon: "📄" },
+  { key: "historical_ar_invoice", label: "AR Invoices", icon: "📄" },
+];
+
 const STEP_LABELS: Record<string, string> = {
   gl: "Chart of Accounts",
   ap: "Accounts Payable",
   ar: "Accounts Receivable",
   inventory: "Inventory",
   asset: "Fixed Assets",
+  pending_po: "Pending Purchase Orders",
+  pending_so: "Pending Sales Orders",
+  pending_grn: "Pending Goods Receipt Notes",
+  historical_journal: "Historical Journal Entries",
+  historical_ap_invoice: "Historical AP Invoices",
+  historical_ar_invoice: "Historical AR Invoices",
 };
 
 export default function MigrationWizardPage() {
@@ -27,7 +42,9 @@ export default function MigrationWizardPage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [migrationId, setMigrationId] = useState<string | null>(null);
+  const [txMigrationId, setTxMigrationId] = useState<string | null>(null);
   const [goLiveDate, setGoLiveDate] = useState("");
+  const [migrationOption, setMigrationOption] = useState("fresh");
   const [stepFiles, setStepFiles] = useState<Record<string, File | null>>({});
   const [stepResults, setStepResults] = useState<Record<string, Record<string, unknown>>>({});
 
@@ -52,7 +69,7 @@ export default function MigrationWizardPage() {
     if (!goLiveDate) return;
     const ok = await confirm({
       title: "Start Migration",
-      message: `Create opening balance migration as of ${goLiveDate}?`,
+      message: `Create ${migrationOption === 'fresh' ? 'Fresh Start' : 'Full'} migration as of ${goLiveDate}?`,
       variant: "info",
       confirmText: "Start",
     });
@@ -62,14 +79,24 @@ export default function MigrationWizardPage() {
         go_live_date: goLiveDate,
       });
       setMigrationId((data as Record<string, unknown>).id as string);
+      if (migrationOption === 'full') {
+        const { data: txData } = await api.post("/core/transaction-migration/migrations/", {
+          go_live_date: goLiveDate,
+          migration_option: "full",
+          opening_migration_id: (data as Record<string, unknown>).id,
+        });
+        setTxMigrationId((txData as Record<string, unknown>).id as string);
+      }
       queryClient.invalidateQueries({ queryKey: ["opening-migrations"] });
     } catch (err) {
-      console.warn("Failed to create migration, falling back to existing:", err);
+      console.warn("Failed to create migration:", err);
     }
   }
 
-  const currentStep = STEPS[step];
-  const isLastStep = step === STEPS.length - 1;
+  const allSteps = migrationOption === 'full' ? [...STEPS, ...TX_STEPS] : STEPS;
+  const currentStep = allSteps[step];
+  const isLastStep = step === allSteps.length - 1;
+  const isTxStep = step >= STEPS.length && migrationOption === 'full';
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>, stepKey: string) {
     if (e.target.files && e.target.files[0]) {
@@ -91,11 +118,16 @@ export default function MigrationWizardPage() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const { data } = await api.post(
-        `/core/opening-balance/migrations/${migrationId}/import/${stepKey}/`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
+      const isTx = TX_STEPS.some((s) => s.key === stepKey);
+      const base = isTx ? "transaction-migration" : "opening-balance";
+      const mid = isTx ? txMigrationId : migrationId;
+      if (!mid) return;
+      const url = isTx
+        ? `/core/${base}/migrations/${mid}/upload/${stepKey}/`
+        : `/core/${base}/migrations/${mid}/import/${stepKey}/`;
+      const { data } = await api.post(url, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setStepResults((prev) => ({ ...prev, [stepKey]: data as Record<string, unknown> }));
       refetchSummary();
     } catch (err: unknown) {
@@ -108,12 +140,15 @@ export default function MigrationWizardPage() {
     if (!migrationId) return;
     const ok = await confirm({
       title: "Complete Migration",
-      message: "Finalize opening balance migration? This cannot be undone.",
+      message: "Finalize data migration? This cannot be undone.",
       variant: "warning",
       confirmText: "Complete",
     });
     if (!ok) return;
     await api.post(`/core/opening-balance/migrations/${migrationId}/complete/`);
+    if (txMigrationId) {
+      await api.post(`/core/transaction-migration/migrations/${txMigrationId}/complete/`);
+    }
     refetchSummary();
   }
 
@@ -121,13 +156,17 @@ export default function MigrationWizardPage() {
     if (!migrationId) return;
     const ok = await confirm({
       title: "Rollback Migration",
-      message: "Delete all opening balance data?",
+      message: "Delete all migration data?",
       variant: "danger",
       confirmText: "Rollback",
     });
     if (!ok) return;
+    if (txMigrationId) {
+      await api.post(`/core/transaction-migration/migrations/${txMigrationId}/rollback/`);
+    }
     await api.post(`/core/opening-balance/migrations/${migrationId}/rollback/`);
     setMigrationId(null);
+    setTxMigrationId(null);
     setStepResults({});
     setStepFiles({});
     setStep(0);
@@ -137,10 +176,21 @@ export default function MigrationWizardPage() {
   if (!migrationId && migrations.length === 0) {
     return (
       <div className="p-4 md:p-6 max-w-lg">
-        <h1 className="mb-4 text-xl font-bold text-secondary-900">Opening Balance Migration</h1>
+        <h1 className="mb-4 text-xl font-bold text-secondary-900">Data Migration Wizard</h1>
         <p className="mb-4 text-sm text-secondary-500">
-          Import opening balances from your old system.
+          Import opening balances and optionally pending transactions from your old system.
         </p>
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-medium text-secondary-700">Migration Option</label>
+          <select
+            value={migrationOption}
+            onChange={(e) => setMigrationOption(e.target.value)}
+            className="w-full rounded-lg border border-secondary-300 px-3 py-2 text-sm"
+          >
+            <option value="fresh">Fresh Start (opening balances only)</option>
+            <option value="full">Full Migration (opening balances + pending transactions)</option>
+          </select>
+        </div>
         <div className="mb-4">
           <label className="mb-1 block text-sm font-medium text-secondary-700">Go-Live Date</label>
           <input
@@ -157,6 +207,11 @@ export default function MigrationWizardPage() {
         >
           Start Migration
         </button>
+        {migrationOption === "full" && (
+          <div className="mt-4 rounded-lg border border-info-200 bg-info-50 p-3 text-xs text-info-700">
+            Full migration includes: opening balances + open POs, SOs, GRNs, and historical journals/invoices.
+          </div>
+        )}
       </div>
     );
   }
@@ -226,11 +281,11 @@ export default function MigrationWizardPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="mb-4 text-xl font-bold text-secondary-900">Opening Balance Migration</h1>
+      <h1 className="mb-4 text-xl font-bold text-secondary-900">Data Migration</h1>
 
       {/* Step Progress */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {STEPS.map((s, i) => (
+        {allSteps.map((s, i) => (
           <button
             key={s.key}
             onClick={() => setStep(i)}
@@ -267,7 +322,7 @@ export default function MigrationWizardPage() {
                 onClick={() => setStep(step + 1)}
                 className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-4 py-2 text-sm text-white"
               >
-                Next: {STEPS[step + 1].label} <ArrowRight className="h-4 w-4" />
+                Next: {allSteps[step + 1].label} <ArrowRight className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -277,7 +332,9 @@ export default function MigrationWizardPage() {
               Download the CSV template, fill in your data, then upload.
             </p>
             <a
-              href={`/api/v1/core/opening-balance/templates/${currentStep.key}/csv/`}
+              href={isTxStep
+                ? `/api/v1/core/transaction-migration/templates/${currentStep.key}/`
+                : `/api/v1/core/opening-balance/templates/${currentStep.key}/csv/`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
