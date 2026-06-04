@@ -279,3 +279,14 @@ def get_import_history(request):
     """Get import history."""
     company_id = getattr(request.user, "current_company_id", None)
     return import_service.get_import_history(company_id=company_id)
+
+
+@router.post("/seed-templates/")
+def seed_import_templates(request):
+    """Upsert all predefined import templates (superuser only)."""
+    if not request.auth.is_superuser:
+        raise HttpError(403, "Only superusers can seed templates")
+    from apps.core.services.import_service import seed_templates as _seed
+
+    _seed()
+    return {"detail": "Import templates seeded successfully"}

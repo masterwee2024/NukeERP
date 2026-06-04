@@ -467,7 +467,21 @@ export default function ImportPage() {
           ))}
           {filteredTemplates.length === 0 && (
             <div className="col-span-full py-8 text-center text-sm text-secondary-400">
-              No templates found. Run <code className="rounded bg-secondary-100 px-1">seed_templates</code> to create them.
+              No templates found.{' '}
+              <button
+                onClick={async () => {
+                  try {
+                    await api.post("/core/import/seed-templates/");
+                    queryClient.invalidateQueries({ queryKey: ["import-templates"] });
+                  } catch {
+                    // silently fail
+                  }
+                }}
+                className="text-primary-600 hover:text-primary-700 underline"
+              >
+                Click here
+              </button>{' '}
+              to load default templates.
             </div>
           )}
         </div>
