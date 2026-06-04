@@ -425,7 +425,9 @@ export default function ImportPage() {
               try {
                 await api.post("/core/import/seed-templates/");
                 queryClient.invalidateQueries({ queryKey: ["import-templates"] });
-              } catch { /* ignore */ }
+              } catch {
+                window.location.reload();
+              }
             }}
             className="shrink-0 rounded-lg border border-secondary-300 px-3 py-2 text-xs font-medium text-secondary-600 hover:bg-secondary-50"
             title="Reload default import templates"
