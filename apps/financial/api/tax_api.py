@@ -134,6 +134,16 @@ def create_tax_code(request, payload: TaxCodeCreateIn):
     return code
 
 
+@router.delete("/tax-codes/{id}/")
+def delete_tax_code(request, id: UUID):
+    try:
+        code = TaxCode.objects.get(id=id)
+    except TaxCode.DoesNotExist:
+        raise HttpError(404, "Tax code not found") from None
+    code.delete()
+    return {"success": True}
+
+
 @router.put("/tax-codes/{id}/", response=TaxCodeOut)
 def update_tax_code(request, id: UUID, payload: TaxCodeUpdateIn):
     try:
