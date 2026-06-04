@@ -148,41 +148,58 @@ return (
 **Every action button** must follow the **Confirm → Execute → Result** pattern.
 No silent actions. No inline flash messages. No multi-state button labels.
 
-### Pattern
+Use the **`useAction()` hook** from `@/components/ui/ConfirmDialog` — it implements the full cycle in one call. Do NOT write the try/catch/confirm pattern manually.
+
+### Usage
 
 ```tsx
-async function handleAction() {
-  // 1. CONFIRM — ask user before proceeding
-  const ok = await confirm({
-    title: "Action Title",
-    message: "What will happen? Be specific.",
-    variant: "info",      // info / warning / danger
-    confirmText: "Proceed",
-  });
-  if (!ok) return;
+import { useConfirm, useAction } from "@/components/ui/ConfirmDialog";
 
-  try {
-    // 2. EXECUTE — perform the action
-    await api.post("/some/endpoint/");
+function MyPage() {
+  const { confirm } = useConfirm();
+  const { execute } = useAction();
 
-    // 3. SUCCESS — show result dialog (user MUST click OK)
-    await confirm({
-      title: "Action Complete",
-      message: "What was done (count, details).",
-      variant: "info",
-      confirmText: "OK",
-    });
-  } catch (err: unknown) {
-    // 4. ERROR — show error dialog with actionable message
-    await confirm({
-      title: "Error",
-      message: `Failed to do action. ${err instanceof Error ? err.message : "Please contact system administrator."}`,
-      variant: "danger",
-      confirmText: "OK",
+  async function handleDelete() {
+    await execute({
+      confirm: {
+        title: "Delete Record",
+        message: "This cannot be undone.",
+        variant: "danger",
+        confirmText: "Delete",
+      },
+      action: () => api.delete(`/items/${id}/`),
+      success: { title: "Deleted", message: "Record deleted.", variant: "info" },
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["items"] }),
     });
   }
-}
+
+  async function handleReload() {
+    const result = await execute({
+      confirm: { title: "Reload", message: "Reload templates?", variant: "info", confirmText: "Reload" },
+      action: () => api.post("/seed/"),
+      success: { title: "", message: "", variant: "info" },
+      onSuccess: async (result) => {
+        await confirm({ title: "Done", message: `Loaded: ${result}`, variant: "info", confirmText: "OK" });
+      },
+    });
+  }
 ```
+
+### Signature
+
+```typescript
+execute<TReturn>({
+  confirm?: ConfirmConfig,            // omit to skip confirm dialog
+  action: () => Promise<TReturn>,     // the API call / action
+  success?: { title, message, variant },  // success dialog (omit to skip)
+  errorTitle?: string,                // default "Error"
+  onSuccess?: (result: TReturn) => void | Promise<void>,  // post-success handler
+}): Promise<TReturn | undefined>
+```
+
+- If user cancels confirm → returns `undefined`, action never runs
+- If action throws → error dialog shows, returns `undefined`
+- If action succeeds → success dialog shows, then `onSuccess` runs, returns action result
 
 ### Variants
 
@@ -192,10 +209,15 @@ async function handleAction() {
 | `warning` | Destructive or irreversible actions (post, void, complete) | "Post" / "Void" / "Complete" |
 | `danger` | Data deletion | "Delete" / "Remove" |
 
+### Dialog Size
+
+The ConfirmDialog component uses `max-w-sm` (384px). Do NOT override — it applies globally.
+
 ### Prohibited
 
-- **No silent success** — user must see a dialog confirming completion
-- **No silent error** — user must see a dialog explaining what went wrong (include `err.message` when available, otherwise generic "contact system administrator")
-- **No inline flash messages** — no `setTimeout` auto-dismiss toasts, no button text changes as feedback
+- **No silent success** — always show a result dialog
+- **No silent error** — always show error with `err.message` or "contact system administrator"
+- **No inline flash messages** — no toasts, no button text changes
 - **No `catch { /* ignore */ }`** — never swallow errors
-- **No `window.confirm()`** — use `useConfirm()` hook only
+- **No `window.confirm()`** — use `useConfirm()` or `useAction()` only
+- **No manual try/catch confirm pattern** — use `useAction()` instead
