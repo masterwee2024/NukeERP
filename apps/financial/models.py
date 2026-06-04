@@ -183,3 +183,53 @@ class GeneralLedger(models.Model):
 
     def __str__(self):
         return f"GL: {self.account.code} DR={self.debit} CR={self.credit}"
+
+
+class TaxCode(ConcurrencyModel):
+    """Tax code definition — global master data."""
+
+    TAX_TYPES = [
+        ("sales", "Sales Tax"),
+        ("service", "Service Tax"),
+        ("exempt", "Exempt"),
+        ("zero_rated", "Zero-Rated"),
+        ("out_of_scope", "Out of Scope"),
+        ("purchase", "Purchase / Input Tax"),
+    ]
+
+    code = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=200)
+    rate_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_type = models.CharField(max_length=20, choices=TAX_TYPES)
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "financial_tax_code"
+        ordering = ["code"]
+        verbose_name = "Tax Code"
+        verbose_name_plural = "Tax Codes"
+
+    def __str__(self):
+        return f"{self.code} ({self.rate_percent}%)"
+
+
+class TaxRate(ConcurrencyModel):
+    """Tax rate with effective dating for rate changes."""
+
+    tax_code = models.ForeignKey(
+        TaxCode, on_delete=models.CASCADE, related_name="rates"
+    )
+    rate_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    effective_from = models.DateField()
+    effective_to = models.DateField(null=True, blank=True)
+    is_current = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "financial_tax_rate"
+        ordering = ["-effective_from"]
+        verbose_name = "Tax Rate"
+        verbose_name_plural = "Tax Rates"
+
+    def __str__(self):
+        return f"{self.tax_code.code} @ {self.rate_percent}% from {self.effective_from}"
