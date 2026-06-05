@@ -16,7 +16,11 @@ from apps.financial.services.journal_service import (
     reverse_journal_entry,
     update_journal_entry,
 )
-from apps.financial.services.posting_service import PostingError, post_journal_entry
+from apps.financial.services.posting_service import (
+    PostingError,
+    post_journal_entry,
+    submit_for_approval,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +84,7 @@ class JournalEntryOut(Schema):
     lines: list[JournalEntryLineOut] = []
     created_at: str = ""
     updated_at: str = ""
+    posted_at: str | None = None
 
     @staticmethod
     def resolve_id(obj):
@@ -109,6 +114,10 @@ class JournalEntryOut(Schema):
     def resolve_updated_at(obj):
         return obj.updated_at.isoformat() if obj.updated_at else ""
 
+    @staticmethod
+    def resolve_posted_at(obj):
+        return obj.posted_at.isoformat() if obj.posted_at else None
+
 
 class JournalEntryListOut(Schema):
     count: int
@@ -134,6 +143,12 @@ class JournalEntryUpdateIn(Schema):
     description: str | None = None
     reference: str | None = None
     lines: list[JournalEntryLineIn] | None = None
+
+
+class JournalEntrySubmitOut(Schema):
+    id: str
+    status: str
+    execution_id: str | None = None
 
 
 class JournalEntryReverseOut(Schema):
@@ -302,18 +317,38 @@ def update(request, id: UUID, payload: JournalEntryUpdateIn):
 @router.delete("/journal-entries/{id}/")
 def delete(request, id: UUID):
     """Delete a draft journal entry."""
+    company_id = _require_company_id(request)
     try:
-        delete_journal_entry(id)
+        delete_journal_entry(id, company_id=company_id)
         return {"success": True}
     except ValueError as e:
         raise HttpError(400, str(e)) from e
 
 
+@router.post(
+    "/journal-entries/{id}/submit/",
+    response={200: JournalEntrySubmitOut},
+)
+def submit(request, id: UUID):
+    """Submit a draft journal entry for approval."""
+    company_id = _require_company_id(request)
+    try:
+        entry = submit_for_approval(
+            entry_id=id,
+            requester=request.auth,
+            company_id=company_id,
+        )
+        return {"id": str(entry.id), "status": entry.status}
+    except PostingError as e:
+        raise HttpError(400, str(e)) from e
+
+
 @router.post("/journal-entries/{id}/post/", response=JournalEntryOut)
 def post(request, id: UUID):
-    """Post a draft journal entry to the General Ledger."""
+    """Post a draft or approved journal entry to the General Ledger."""
+    company_id = _require_company_id(request)
     try:
-        entry = post_journal_entry(id)
+        entry = post_journal_entry(id, company_id=company_id)
         return (
             JournalEntry.objects.select_related("created_by")
             .prefetch_related(
@@ -330,8 +365,11 @@ def post(request, id: UUID):
 @router.post("/journal-entries/{id}/reverse/", response=JournalEntryReverseOut)
 def reverse(request, id: UUID):
     """Reverse a posted journal entry."""
+    company_id = _require_company_id(request)
     try:
-        reversal = reverse_journal_entry(id, created_by_id=request.auth.id)
+        reversal = reverse_journal_entry(
+            id, created_by_id=request.auth.id, company_id=company_id
+        )
         return reversal
     except ValueError as e:
         raise HttpError(400, str(e)) from e

@@ -16,7 +16,7 @@ import {
   X,
   CheckCircle,
   RotateCcw,
-
+  Send,
   FileText,
   AlertTriangle,
 } from "lucide-react";
@@ -46,14 +46,14 @@ interface JournalEntry {
   date: string;
   description: string;
   reference: string;
-  status: "draft" | "posted" | "reversed";
+  status: "draft" | "submitted" | "approved" | "posted" | "reversed";
   total_debit: number;
   total_credit: number;
-  created_by?: { id: string; name: string };
+  created_by_name: string;
   lines: JournalLine[];
   updated_at?: string;
-  reversal_entry_id?: string;
-  reversed_entry_id?: string;
+  reversal_of_id?: string;
+  posted_at?: string;
 }
 
 interface PaginatedResponse<T> {
@@ -75,12 +75,16 @@ interface FormLineItem {
 
 const STATUS_BADGE: Record<string, string> = {
   draft: "bg-amber-50 text-amber-700 border-amber-200",
+  submitted: "bg-blue-50 text-blue-700 border-blue-200",
+  approved: "bg-teal-50 text-teal-700 border-teal-200",
   posted: "bg-green-50 text-green-700 border-green-200",
   reversed: "bg-red-50 text-red-700 border-red-200",
 };
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
+  submitted: "Pending Approval",
+  approved: "Approved",
   posted: "Posted",
   reversed: "Reversed",
 };
@@ -715,6 +719,34 @@ export default function JournalEntryPage() {
     [execute, queryClient, selectedId]
   );
 
+  const handleSubmitForApproval = useCallback(
+    async (entry: JournalEntry) => {
+      await execute({
+        confirm: {
+          title: "Submit for Approval",
+          message: `Submit "${entry.entry_number}" for approval? The entry will be locked until approved.`,
+          variant: "info",
+          confirmText: "Submit",
+        },
+        action: async () => {
+          const { data } = await api.post(
+            `/financial/journal-entries/${entry.id}/submit/`
+          );
+          return data;
+        },
+        success: {
+          title: "Submitted for Approval",
+          message: `"${entry.entry_number}" has been submitted for approval.`,
+          variant: "info",
+        },
+        onSuccess: () => {
+          refresh();
+        },
+      });
+    },
+    [execute, refresh]
+  );
+
   const handlePost = useCallback(
     async (entry: JournalEntry) => {
       await execute({
@@ -800,6 +832,8 @@ export default function JournalEntryPage() {
       >
         <option value="">All Statuses</option>
         <option value="draft">Draft</option>
+        <option value="submitted">Pending Approval</option>
+        <option value="approved">Approved</option>
         <option value="posted">Posted</option>
         <option value="reversed">Reversed</option>
       </select>
@@ -911,7 +945,7 @@ export default function JournalEntryPage() {
                     {formatCurrency(entry.total_credit)}
                   </td>
                   <td className="px-4 py-3 text-secondary-600">
-                    {entry.created_by?.name || "—"}
+                    {entry.created_by_name || "—"}
                   </td>
                 </tr>
               ))}
@@ -1040,6 +1074,8 @@ export default function JournalEntryPage() {
 
     const entry = selectedEntry;
     const isDraft = entry.status === "draft";
+    const isSubmitted = entry.status === "submitted";
+    const isApproved = entry.status === "approved";
     const isPosted = entry.status === "posted";
 
     return (
@@ -1063,6 +1099,13 @@ export default function JournalEntryPage() {
                 <span className="hidden sm:inline">Delete</span>
               </button>
               <button
+                onClick={() => handleSubmitForApproval(entry)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-primary-300 px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"
+              >
+                <Send className="h-4 w-4" />
+                <span className="hidden sm:inline">Submit for Approval</span>
+              </button>
+              <button
                 onClick={() => handlePost(entry)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-success-600 px-4 py-2 text-sm font-medium text-white hover:bg-success-500"
               >
@@ -1070,6 +1113,21 @@ export default function JournalEntryPage() {
                 <span className="hidden sm:inline">Post to GL</span>
               </button>
             </>
+          )}
+          {isApproved && (
+            <button
+              onClick={() => handlePost(entry)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-success-600 px-4 py-2 text-sm font-medium text-white hover:bg-success-500"
+            >
+              <CheckCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Post to GL</span>
+            </button>
+          )}
+          {isSubmitted && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
+              <Send className="h-4 w-4" />
+              Pending Approval
+            </span>
           )}
           {isPosted && (
             <button
@@ -1120,7 +1178,7 @@ export default function JournalEntryPage() {
                 Created By
               </span>
               <p className="mt-1 text-sm text-secondary-900">
-                {entry.created_by?.name || "—"}
+                {entry.created_by_name || "—"}
               </p>
             </div>
             <div>
@@ -1139,20 +1197,12 @@ export default function JournalEntryPage() {
                 {formatCurrency(entry.total_credit)}
               </p>
             </div>
-            {entry.reversal_entry_id && (
+            {entry.reversal_of_id && (
               <div>
                 <span className="text-xs font-medium uppercase tracking-wider text-secondary-500">
-                  Reversal Entry
+                  Reverses Entry
                 </span>
-                <p className="mt-1 text-sm text-secondary-900">{entry.reversal_entry_id}</p>
-              </div>
-            )}
-            {entry.reversed_entry_id && (
-              <div>
-                <span className="text-xs font-medium uppercase tracking-wider text-secondary-500">
-                  Reversed Entry
-                </span>
-                <p className="mt-1 text-sm text-secondary-900">{entry.reversed_entry_id}</p>
+                <p className="mt-1 text-sm text-secondary-900">{entry.reversal_of_id}</p>
               </div>
             )}
           </div>

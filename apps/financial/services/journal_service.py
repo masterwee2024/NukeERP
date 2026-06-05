@@ -128,9 +128,12 @@ def update_journal_entry(
 
 
 @transaction.atomic
-def delete_journal_entry(entry_id: UUID) -> None:
+def delete_journal_entry(entry_id: UUID, company_id: UUID | None = None) -> None:
     """Delete a draft journal entry."""
-    entry = JournalEntry.objects.select_for_update().get(id=entry_id)
+    filters = {"id": entry_id}
+    if company_id:
+        filters["company_id"] = company_id
+    entry = JournalEntry.objects.select_for_update().get(**filters)
     if entry.status != "draft":
         raise ValueError("Cannot delete a posted or reversed journal entry")
     entry.lines.all().delete()
@@ -139,10 +142,15 @@ def delete_journal_entry(entry_id: UUID) -> None:
 
 @transaction.atomic
 def reverse_journal_entry(
-    entry_id: UUID, created_by_id: UUID | None = None
+    entry_id: UUID, created_by_id: UUID | None = None, company_id: UUID | None = None
 ) -> JournalEntry:
-    """Reverse a posted journal entry by swapping debits and credits."""
-    original = JournalEntry.objects.select_for_update().get(id=entry_id)
+    """Reverse a posted journal entry by creating and posting a reversal."""
+    from apps.financial.services.posting_service import post_journal_entry
+
+    filters = {"id": entry_id}
+    if company_id:
+        filters["company_id"] = company_id
+    original = JournalEntry.objects.select_for_update().get(**filters)
 
     if original.status != "posted":
         raise ValueError("Only posted journal entries can be reversed")
@@ -171,6 +179,9 @@ def reverse_journal_entry(
 
     reversal.reversal_of = original
     reversal.save(update_fields=["reversal_of"])
+
+    post_journal_entry(reversal.id)
+    reversal.refresh_from_db()
 
     original.status = "reversed"
     original.save(update_fields=["status", "updated_at", "version"])

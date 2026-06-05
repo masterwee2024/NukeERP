@@ -7,7 +7,13 @@ from uuid import UUID
 from django.db import models, transaction
 from django.utils import timezone
 
-from apps.financial.models import Account, GeneralLedger, JournalEntry, JournalEntryLine
+from apps.financial.models import (
+    Account,
+    FinancialPeriod,
+    GeneralLedger,
+    JournalEntry,
+    JournalEntryLine,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +22,31 @@ class PostingError(ValueError):
     """Raised when a journal entry cannot be posted."""
 
     pass
+
+
+def _get_period(company_id: UUID, entry_date: date) -> FinancialPeriod | None:
+    """Return the open financial period for a company/date, or None."""
+    try:
+        return FinancialPeriod.objects.get(
+            company_id=company_id,
+            start_date__lte=entry_date,
+            end_date__gte=entry_date,
+            is_open=True,
+            is_closed=False,
+        )
+    except FinancialPeriod.DoesNotExist:
+        return None
+
+
+def _validate_period(company_id: UUID, entry_date: date) -> FinancialPeriod:
+    """Raise PostingError if no open period exists for the given date."""
+    period = _get_period(company_id, entry_date)
+    if not period:
+        raise PostingError(
+            f"No open financial period found for {entry_date}. "
+            "Create or open a period before posting."
+        )
+    return period
 
 
 def _calculate_running_balance(
@@ -31,7 +62,6 @@ def _calculate_running_balance(
         total_credit=models.Sum("credit"),
     )
 
-    # Also include entries on the same date but created before this one
     same_day_entries = GeneralLedger.objects.filter(
         account_id=account_id,
         company_id=company_id,
@@ -56,14 +86,86 @@ def _calculate_running_balance(
 
 
 @transaction.atomic
-def post_journal_entry(entry_id: UUID) -> JournalEntry:
-    """Post a draft journal entry to the General Ledger.
+def submit_for_approval(
+    entry_id: UUID,
+    requester,
+    company_id: UUID,
+    workflow_id: UUID | None = None,
+) -> JournalEntry:
+    """Submit a draft journal entry for approval.
 
-    Creates immutable GL entries, calculates running balances, and marks
-    the entry as posted.
+    Creates a WorkflowExecution via the approval engine and sets
+    the entry status to 'submitted'. If no workflow_id is given,
+    auto-selects the first active workflow for this document type.
     """
+    from apps.core.models import WorkflowDefinition
+    from apps.core.services.workflow_service import create_execution
+
+    entry = JournalEntry.objects.select_for_update().get(id=entry_id)
+
+    if entry.status != "draft":
+        raise PostingError(
+            f"Cannot submit entry with status '{entry.status}'. "
+            "Only draft entries can be submitted."
+        )
+
+    if workflow_id is None:
+        workflow = (
+            WorkflowDefinition.objects.filter(
+                document_type="financial.JournalEntry",
+                is_active=True,
+            )
+            .filter(models.Q(company_id=company_id) | models.Q(company__isnull=True))
+            .order_by("-company_id")
+            .first()
+        )
+        if not workflow:
+            raise PostingError(
+                "No active approval workflow found for Journal Entries. "
+                "Create a workflow in Admin → Approval Workflows first."
+            )
+        workflow_id = workflow.id
+
+    create_execution(
+        workflow_id=workflow_id,
+        document_type="financial.JournalEntry",
+        document_id=entry.id,
+        requester=requester,
+        company_id=company_id,
+    )
+
+    entry.status = "submitted"
+    entry.save(update_fields=["status", "updated_at", "version"])
+
+    return entry
+
+
+@transaction.atomic
+def approve_submitted_entry(entry_id: UUID) -> JournalEntry:
+    """Mark a submitted journal entry as approved (called on workflow completion)."""
+    entry = JournalEntry.objects.select_for_update().get(id=entry_id)
+    if entry.status != "submitted":
+        return entry
+    entry.status = "approved"
+    entry.save(update_fields=["status", "updated_at", "version"])
+    return entry
+
+
+@transaction.atomic
+def post_journal_entry(entry_id: UUID, company_id: UUID | None = None) -> JournalEntry:
+    """Post a journal entry to the General Ledger.
+
+    Accepts 'draft' (direct post) or 'approved' (post-approval) statuses.
+    Validates period is open, creates immutable GL entries with running
+    balances, and marks the entry as posted.
+    """
+    filters = {"id": entry_id}
+    if company_id:
+        filters["company_id"] = company_id
+
     entry = (
         JournalEntry.objects.select_for_update()
+        .filter(**filters)
         .select_related("company")
         .prefetch_related(
             models.Prefetch(
@@ -73,16 +175,20 @@ def post_journal_entry(entry_id: UUID) -> JournalEntry:
                 ),
             )
         )
-        .get(id=entry_id)
+        .get()
     )
 
     if entry.status == "posted":
         raise PostingError("Journal entry is already posted")
 
-    if entry.status != "draft":
+    if entry.status == "reversed":
+        raise PostingError("Cannot post a reversed journal entry")
+
+    if entry.status not in ("draft", "approved"):
         raise PostingError(f"Cannot post journal entry with status '{entry.status}'")
 
-    # Create GL entries for each line
+    period = _validate_period(entry.company_id, entry.date)
+
     for line in entry.lines.all():
         balance = _calculate_running_balance(
             line.account_id, entry.company_id, entry.date
@@ -111,6 +217,7 @@ def post_journal_entry(entry_id: UUID) -> JournalEntry:
             credit=line.credit,
             balance=new_balance,
             company=entry.company,
+            period=period,
         )
 
     entry.status = "posted"

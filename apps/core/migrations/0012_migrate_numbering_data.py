@@ -38,7 +38,6 @@ def reverse_data(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("core", "0011_numberingseriespolicy_companynumberingseries"),
     ]
