@@ -43,6 +43,7 @@ const AuditRetentionSettingsPage = lazy(() => import("./pages/admin/AuditRetenti
 const WorkflowDesignerPage = lazy(() => import("./pages/WorkflowDesignerPage"));
 const AccountTreePage = lazy(() => import("./pages/financial/AccountTreePage"));
 const JournalEntryPage = lazy(() => import("./pages/financial/JournalEntryPage"));
+const PeriodManagementPage = lazy(() => import("./pages/financial/PeriodManagementPage"));
 const TaxCodePage = lazy(() => import("./pages/financial/TaxCodePage"));
 const MessagingPage = lazy(() => import("./pages/MessagingPage"));
 const EmailApprovalExecutePage = lazy(() => import("./pages/EmailApprovalExecutePage"));
@@ -78,6 +79,7 @@ export default function App() {
                     <Route path="financial" element={<Dashboard />} />
                     <Route path="financial/accounts" element={<AccountTreePage />} />
                     <Route path="financial/journal-entries" element={<JournalEntryPage />} />
+                    <Route path="financial/periods" element={<PeriodManagementPage />} />
                     <Route path="financial/tax-codes" element={<TaxCodePage />} />
                     <Route path="financial/*" element={<Dashboard />} />
                     <Route path="assets/*" element={<Dashboard />} />
