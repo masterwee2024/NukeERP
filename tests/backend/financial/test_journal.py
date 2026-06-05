@@ -11,7 +11,7 @@ from apps.core.models import (
     NumberingSeriesPolicy,
     User,
 )
-from apps.financial.models import Account, JournalEntry
+from apps.financial.models import Account, FinancialPeriod, JournalEntry
 from apps.financial.services.journal_service import (
     BalanceError,
     create_journal_entry,
@@ -89,6 +89,17 @@ def balanced_lines(asset_account, revenue_account):
             "description": "Sales revenue",
         },
     ]
+
+
+@pytest.fixture
+def period(db, company):
+    return FinancialPeriod.objects.create(
+        company=company,
+        name="June 2026",
+        start_date=date(2026, 6, 1),
+        end_date=date(2026, 7, 31),
+        is_open=True,
+    )
 
 
 @pytest.fixture
@@ -171,11 +182,12 @@ class TestJournalService:
         with pytest.raises(ValueError, match="Cannot delete"):
             delete_journal_entry(journal_entry.id)
 
-    def test_reverse_posted_entry(self, journal_entry, admin_user):
+    def test_reverse_posted_entry(self, journal_entry, admin_user, period):
         journal_entry.status = "posted"
         journal_entry.save(update_fields=["status"])
 
         reversal = reverse_journal_entry(journal_entry.id, created_by_id=admin_user.id)
+        assert reversal.status == "posted"
         assert reversal.reversal_of_id == journal_entry.id
         assert reversal.total_debit == 1000
         assert reversal.total_credit == 1000
@@ -195,7 +207,7 @@ class TestJournalService:
         with pytest.raises(ValueError, match="Only posted"):
             reverse_journal_entry(journal_entry.id)
 
-    def test_reverse_reversal_fails(self, journal_entry, admin_user):
+    def test_reverse_reversal_fails(self, journal_entry, admin_user, period):
         journal_entry.status = "posted"
         journal_entry.save(update_fields=["status", "version"])
 
@@ -301,7 +313,7 @@ class TestJournalAPI:
         )
         assert response.status_code == 200
 
-    def test_reverse_entry(self, client, admin_user, company, journal_entry):
+    def test_reverse_entry(self, client, admin_user, company, journal_entry, period):
         journal_entry.status = "posted"
         journal_entry.save(update_fields=["status"])
 
@@ -312,6 +324,7 @@ class TestJournalAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["reversal_of_id"] == str(journal_entry.id)
+        assert data["status"] == "posted"
 
     def test_reverse_draft_fails(self, client, admin_user, company, journal_entry):
         response = client.post(

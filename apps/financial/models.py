@@ -84,6 +84,8 @@ class JournalEntry(ConcurrencyModel):
 
     STATUS_CHOICES = [
         ("draft", "Draft"),
+        ("submitted", "Submitted"),
+        ("approved", "Approved"),
         ("posted", "Posted"),
         ("reversed", "Reversed"),
     ]
@@ -150,6 +152,31 @@ class JournalEntryLine(ConcurrencyModel):
         return f"Line {self.line_number}: {self.account.code} DR={self.debit} CR={self.credit}"
 
 
+class FinancialPeriod(ConcurrencyModel):
+    """Accounting period for a company. Used to control posting windows."""
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="financial_periods"
+    )
+    name = models.CharField(max_length=100)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_open = models.BooleanField(default=True)
+    is_closed = models.BooleanField(
+        default=False, help_text="Year-end close — no further postings"
+    )
+
+    class Meta:
+        db_table = "financial_period"
+        ordering = ["-start_date"]
+        unique_together = ("company", "start_date", "end_date")
+        verbose_name = "Financial Period"
+        verbose_name_plural = "Financial Periods"
+
+    def __str__(self):
+        return f"{self.name} ({self.company.code})"
+
+
 class GeneralLedger(models.Model):
     """Immutable GL entry created when a journal entry is posted."""
 
@@ -169,6 +196,13 @@ class GeneralLedger(models.Model):
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, related_name="gl_entries"
     )
+    period = models.ForeignKey(
+        FinancialPeriod,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="gl_entries",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -179,6 +213,7 @@ class GeneralLedger(models.Model):
         indexes = [
             models.Index(fields=["account", "date"]),
             models.Index(fields=["company", "date"]),
+            models.Index(fields=["period"]),
         ]
 
     def __str__(self):
