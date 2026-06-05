@@ -152,11 +152,42 @@ class JournalEntryLine(ConcurrencyModel):
         return f"Line {self.line_number}: {self.account.code} DR={self.debit} CR={self.credit}"
 
 
+class FinancialYear(ConcurrencyModel):
+    """Financial year grouping for a company. Contains periods."""
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="financial_years"
+    )
+    name = models.CharField(max_length=100)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_closed = models.BooleanField(
+        default=False, help_text="Year-end close completed — no further postings"
+    )
+
+    class Meta:
+        db_table = "financial_year"
+        ordering = ["-start_date"]
+        unique_together = ("company", "name")
+        verbose_name = "Financial Year"
+        verbose_name_plural = "Financial Years"
+
+    def __str__(self):
+        return f"{self.name} ({self.company.code})"
+
+
 class FinancialPeriod(ConcurrencyModel):
     """Accounting period for a company. Used to control posting windows."""
 
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, related_name="financial_periods"
+    )
+    financial_year = models.ForeignKey(
+        FinancialYear,
+        on_delete=models.CASCADE,
+        related_name="periods",
+        null=True,
+        blank=True,
     )
     name = models.CharField(max_length=100)
     start_date = models.DateField()
@@ -168,7 +199,7 @@ class FinancialPeriod(ConcurrencyModel):
 
     class Meta:
         db_table = "financial_period"
-        ordering = ["-start_date"]
+        ordering = ["start_date"]
         unique_together = ("company", "start_date", "end_date")
         verbose_name = "Financial Period"
         verbose_name_plural = "Financial Periods"
