@@ -84,12 +84,19 @@ export default function ReportPage() {
     periodId: string;
   } | null>(null);
 
-  const { data: reportDef } = useQuery<ReportDefinitionOut>({
-    queryKey: ["report-def", reportCode],
-    queryFn: () =>
-      api.get(`/financial/reports/${reportCode}/`).then((r) => r.data),
-    enabled: false,
+  const { data: reportsList } = useQuery<ReportDefinitionOut[]>({
+    queryKey: ["reports-list"],
+    queryFn: () => api.get("/financial/reports/").then((r) => r.data),
+    staleTime: 60_000,
   });
+  const reportDef = reportsList?.find((r) => r.code === reportCode);
+
+  const { data: periods } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ["periods"],
+    queryFn: () => api.get("/financial/periods/").then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const periodMap = new Map(periods?.map((p) => [p.id, p.name]));
 
   const { data, isLoading, isError, error, refetch } = useQuery<ReportResult>(
     {
@@ -170,8 +177,26 @@ export default function ReportPage() {
 
     const groupField = reportDef?.group_field || data.columns.find((c) => c.key === "account_type")?.key;
 
+    const periodFromName = filters.period_from ? periodMap.get(filters.period_from as string) : null;
+    const periodToName = filters.period_to ? periodMap.get(filters.period_to as string) : null;
+    const periodLabel = periodFromName && periodToName
+      ? `${periodFromName} — ${periodToName}`
+      : periodFromName || periodToName || "";
+
     return (
       <div className="space-y-4">
+        {/* Report Header */}
+        <div className="border-b border-secondary-200 pb-3">
+          <h2 className="text-lg font-bold text-secondary-900">{reportDef?.name || "Report"}</h2>
+          {periodLabel && (
+            <p className="text-sm text-secondary-500">Period: {periodLabel}</p>
+          )}
+          <p className="text-xs text-secondary-400">
+            Generated: {new Date(data.generated_at).toLocaleString()} &mdash;{" "}
+            {data.total_rows} rows
+          </p>
+        </div>
+
         <div className="flex items-center justify-between">
           <ViewSwitcher view={view} onChange={setView} />
           <div className="flex items-center gap-2">
@@ -205,11 +230,6 @@ export default function ReportPage() {
           </div>
         )}
 
-        <div className="text-sm text-secondary-500">
-          Generated: {new Date(data.generated_at).toLocaleString()} &mdash;{" "}
-          {data.total_rows} rows
-        </div>
-
         {view === "table" ? (
           <ReportTable
             columns={data.columns}
@@ -230,6 +250,12 @@ export default function ReportPage() {
             groupField={groupField}
           />
         )}
+
+        {/* Report Footer */}
+        <div className="border-t border-secondary-200 pt-3 text-center text-xs text-secondary-400">
+          <p>End of Report &mdash; {data.total_rows} rows</p>
+          <p>Generated: {new Date(data.generated_at).toLocaleString()}</p>
+        </div>
       </div>
     );
   };
