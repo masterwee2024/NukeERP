@@ -99,6 +99,12 @@ export default function ReportPage() {
   });
   const periodMap = new Map(periods?.map((p) => [p.id, p.name]));
 
+  const { data: companyInfo } = useQuery<{ name: string }>({
+    queryKey: ["current-company"],
+    queryFn: () => api.get("/core/companies/current/").then((r) => r.data),
+    staleTime: 60_000,
+  });
+
   const { data, isLoading, isError, error, refetch } = useQuery<ReportResult>(
     {
       queryKey: ["report", reportCode, filters, page],
@@ -207,14 +213,21 @@ export default function ReportPage() {
       <div className="space-y-4">
         {/* Report Header */}
         <div className="border-b border-secondary-200 pb-3">
-          <h2 className="text-lg font-bold text-secondary-900">{reportDef?.name || "Report"}</h2>
-          {periodLabel && (
-            <p className="text-sm text-secondary-500">Period: {periodLabel}</p>
-          )}
-          <p className="text-xs text-secondary-400">
-            Generated: {new Date(data.generated_at).toLocaleString()} &mdash;{" "}
-            {data.total_rows} rows
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              {companyInfo?.name && (
+                <p className="text-sm font-semibold text-secondary-600">{companyInfo.name}</p>
+              )}
+              <h2 className="text-lg font-bold text-secondary-900">{reportDef?.name || "Report"}</h2>
+              {periodLabel && (
+                <p className="text-sm text-secondary-500">Period: {periodLabel}</p>
+              )}
+              <p className="text-xs text-secondary-400">
+                Generated: {new Date(data.generated_at).toLocaleString()} &mdash;{" "}
+                {data.total_rows} rows
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between">
@@ -272,9 +285,9 @@ export default function ReportPage() {
         )}
 
         {/* Report Footer */}
-        <div className="border-t border-secondary-200 pt-3 text-center text-xs text-secondary-400">
-          <p>End of Report &mdash; {data.total_rows} rows</p>
-          <p>Generated: {new Date(data.generated_at).toLocaleString()}</p>
+        <div className="border-t border-secondary-200 pt-3 flex justify-between text-xs text-secondary-400">
+          <span>End of Report &mdash; {data.total_rows} rows</span>
+          <span>Page {data.page} of {Math.ceil(data.total_rows / data.page_size)}</span>
         </div>
       </div>
     );

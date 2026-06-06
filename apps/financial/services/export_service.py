@@ -98,10 +98,18 @@ def _generate_html_export(export: ReportExport):
     """Generate an HTML table export (fallback for PDF/XLSX stubs)."""
     from django.core.files.base import ContentFile
 
+    from apps.core.models import Company
     from apps.financial.models import FinancialPeriod
 
     data = ReportService().run(export.report.code, export.params, export.company_id)
     cols = data["columns"]
+
+    # Company name
+    try:
+        company = Company.objects.get(id=export.company_id)
+        company_name = company.name
+    except Exception:
+        company_name = ""
 
     # Resolve period names from UUIDs in params
     period_names = []
@@ -118,13 +126,20 @@ def _generate_html_export(export: ReportExport):
     generated_label = (
         export.generated_at.strftime("%Y-%m-%d %H:%M") if export.generated_at else "N/A"
     )
+    total_rows = len(data["rows"])
 
     html_parts = ["<!DOCTYPE html><html><head><meta charset='utf-8'>"]
     html_parts.append(f"<title>{escape(export.report.name)}</title>")
     html_parts.append("<style>")
     html_parts.append("body{font-family:sans-serif;margin:2rem}")
-    html_parts.append("h1{font-size:1.25rem;color:#333;margin-bottom:0.25rem}")
-    html_parts.append(".meta{font-size:0.8rem;color:#666;margin-bottom:0.25rem}")
+    html_parts.append(
+        ".header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem}"
+    )
+    html_parts.append(".header-left h1{font-size:1.25rem;color:#333;margin:0}")
+    html_parts.append(
+        ".company-name{font-size:1rem;color:#555;font-weight:600;margin-bottom:0.25rem}"
+    )
+    html_parts.append(".meta{font-size:0.8rem;color:#666;margin:0.15rem 0}")
     html_parts.append("table{border-collapse:collapse;width:100%;margin-top:1rem}")
     html_parts.append(
         "th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:0.875rem}"
@@ -132,17 +147,23 @@ def _generate_html_export(export: ReportExport):
     html_parts.append("th{background:#f5f5f5;font-weight:600}")
     html_parts.append("tr:nth-child(even){background:#fafafa}")
     html_parts.append(
-        ".footer{border-top:1px solid #ddd;margin-top:1.5rem;padding-top:0.75rem;font-size:0.75rem;color:#999;text-align:center}"
+        ".footer{border-top:1px solid #ddd;margin-top:1.5rem;padding-top:0.75rem;font-size:0.75rem;color:#999;display:flex;justify-content:space-between}"
     )
     html_parts.append("</style></head><body>")
 
-    # Header
+    # Header — company left, report title right
+    html_parts.append("<div class='header-row'>")
+    html_parts.append("<div class='header-left'>")
+    if company_name:
+        html_parts.append(f"<div class='company-name'>{escape(company_name)}</div>")
     html_parts.append(f"<h1>{escape(export.report.name)}</h1>")
     if period_label:
         html_parts.append(f"<p class='meta'>Period: {escape(period_label)}</p>")
     html_parts.append(
-        f"<p class='meta'>Generated: {generated_label} &mdash; {len(data['rows'])} rows</p>"
+        f"<p class='meta'>Generated: {generated_label} &mdash; {total_rows} rows</p>"
     )
+    html_parts.append("</div>")
+    html_parts.append("</div>")
 
     # Table
     html_parts.append("<table><thead><tr>")
@@ -157,10 +178,12 @@ def _generate_html_export(export: ReportExport):
         html_parts.append("</tr>")
     html_parts.append("</tbody></table>")
 
-    # Footer
+    # Footer — End of Report left, page right
     html_parts.append(
-        "<div class='footer'>End of Report &mdash; "
-        f"{len(data['rows'])} rows &mdash; Generated {generated_label}</div>"
+        "<div class='footer'>"
+        f"<span>End of Report &mdash; {total_rows} rows</span>"
+        f"<span>Page 1 of 1</span>"
+        "</div>"
     )
     html_parts.append("</body></html>")
 
