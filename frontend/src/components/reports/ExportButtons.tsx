@@ -1,19 +1,6 @@
 import { useState, useRef } from "react";
 import api from "@/lib/api";
 
-async function downloadWithAuth(url: string, filename: string) {
-  const resp = await api.get(url, { responseType: "blob" });
-  const blob = new Blob([resp.data]);
-  const blobUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = blobUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(blobUrl);
-}
-
 interface ExportButtonsProps {
   reportCode: string;
   filters: Record<string, unknown>;
@@ -32,6 +19,14 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
   };
 
   const handleExport = async (format: string) => {
+    // Open blank tab immediately (popup-safe, in click handler tick)
+    const win = window.open("about:blank", "_blank");
+    if (!win) {
+      setExportError("Pop-up blocked. Allow pop-ups for this site.");
+      return;
+    }
+    win.document.write("Loading export...");
+
     setExportError(null);
     setExporting(format);
     try {
@@ -49,18 +44,25 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
           if (status === "ready") {
             stopPolling();
             if (download_url) {
-              await downloadWithAuth(download_url, `${reportCode}.${format}`);
+              const blobResp = await api.get(download_url, { responseType: "blob" });
+              const ct = blobResp.headers["content-type"];
+              const contentType = typeof ct === "string" ? ct : "text/html";
+              const blob = new Blob([blobResp.data], { type: contentType });
+              const blobUrl = URL.createObjectURL(blob);
+              win.location.href = blobUrl;
             }
             setExporting(null);
           } else if (status === "failed") {
             stopPolling();
             setExporting(null);
             setExportError("Export failed. Please try again.");
+            win.close();
           }
         } catch {
           stopPolling();
           setExporting(null);
           setExportError("Export failed. Please try again.");
+          win.close();
         }
       }, 1000);
 
@@ -70,11 +72,13 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
           stopPolling();
           setExporting(null);
           setExportError("Export timed out. Please try again.");
+          win.close();
         }
       }, 30000);
     } catch {
       setExporting(null);
       setExportError("Export request failed. Please try again.");
+      win.close();
     }
   };
 

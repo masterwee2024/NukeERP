@@ -251,9 +251,7 @@ def download_export(request, id: UUID):
         return StreamingHttpResponse(
             export.file,
             content_type=CONTENT_TYPES.get(export.format, "application/octet-stream"),
-            headers={
-                "Content-Disposition": f'attachment; filename="{export.file.name}"'
-            },
+            headers={"Content-Disposition": f'inline; filename="{export.file.name}"'},
         )
     except ReportExport.DoesNotExist:
         raise HttpError(404, "Export not found") from None

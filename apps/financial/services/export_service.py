@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 CONTENT_TYPES = {
     "csv": "text/csv",
     "pdf": "text/html",
-    "xlsx": "application/vnd.ms-excel",
+    "xlsx": "text/html",
 }
 
 FILE_EXTENSIONS = {
     "csv": "csv",
     "pdf": "html",
-    "xlsx": "xls",
+    "xlsx": "html",
 }
 
 
