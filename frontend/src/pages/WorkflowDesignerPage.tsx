@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import {
@@ -85,8 +85,93 @@ export default function WorkflowDesignerPage() {
   const [docType, setDocType] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
 
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null;
+
+  const { data: workflows } = useQuery<{ count: number; results: Array<{ id: string; name: string; document_type: string }> }>({
+    queryKey: ["workflows"],
+    queryFn: () => api.get("/core/admin/workflows/").then((r) => r.data),
+    staleTime: 30_000,
+  });
+
+  const { data: workflowDetail } = useQuery({
+    queryKey: ["workflow-detail", workflowId],
+    queryFn: () => api.get(`/core/admin/workflows/${workflowId}/`).then((r) => r.data),
+    enabled: !!workflowId,
+  });
+
+  // Load workflow detail into canvas when fetched
+  useEffect(() => {
+    if (!workflowDetail) return;
+    setName(workflowDetail.name);
+    setModule(workflowDetail.module);
+    setDocType(workflowDetail.document_type);
+    setNodes(
+      workflowDetail.nodes.map((n: { node_id: string; node_type: string; label: string; position_x: number; position_y: number; config: Record<string, unknown> }) => {
+        const style = nodeTypeStyles[n.node_type] || nodeTypeStyles.action;
+        return {
+          id: n.node_id,
+          type: "default",
+          position: { x: n.position_x, y: n.position_y },
+          data: { label: n.label, config: n.config },
+          style: {
+            background: style.bg,
+            color: "#fff",
+            border: `2px solid ${style.border}`,
+            borderRadius: "8px",
+            padding: "10px 20px",
+            minWidth: 120,
+          },
+        } as Node;
+      })
+    );
+    setEdges(
+      workflowDetail.edges.map((e: { source_node_id: string; target_node_id: string; label?: string; condition?: Record<string, unknown> }) => ({
+        id: `${e.source_node_id}-${e.target_node_id}`,
+        source: e.source_node_id,
+        target: e.target_node_id,
+        label: e.label || "",
+      }))
+    );
+  }, [workflowDetail, setNodes, setEdges]);
+
+  // Delete selected node on Delete/Backspace key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
+        setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId));
+        setEdges((eds) => eds.filter((ed) => ed.source !== selectedNodeId && ed.target !== selectedNodeId));
+        setSelectedNodeId(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedNodeId, setNodes, setEdges]);
+
+  const loadWorkflow = (id: string) => {
+    if (!id) return;
+    setWorkflowId(id);
+    setSelectedNodeId(null);
+  };
+
+  const newWorkflow = () => {
+    setWorkflowId(null);
+    setName("New Workflow");
+    setModule("");
+    setDocType("");
+    setNodes([{ ...initialNodes[0], id: "start-1", position: { x: 250, y: 50 }, data: { label: "Start" } }]);
+    setEdges([]);
+    setSelectedNodeId(null);
+    setMessage("");
+  };
+
+  const deleteSelectedNode = () => {
+    if (!selectedNodeId) return;
+    setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId));
+    setEdges((eds) => eds.filter((ed) => ed.source !== selectedNodeId && ed.target !== selectedNodeId));
+    setSelectedNodeId(null);
+  };
 
   const { data: roles } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["roles"],
@@ -174,29 +259,35 @@ export default function WorkflowDesignerPage() {
     setMessage("");
 
     try {
-      const api = (await import("@/lib/api")).default;
-      const flowData = { nodes, edges };
-      const { data } = await api.post("/core/admin/workflows/", {
+      const body = {
         name,
         module,
         document_type: docType,
-        flow_data: flowData,
+        flow_data: { nodes, edges },
         nodes: nodes.map((n) => ({
           node_id: n.id,
           node_type: n.id.split("-")[0],
-          label: n.data.label as string,
+          label: (n.data as Record<string, unknown>).label as string,
           position_x: n.position.x,
           position_y: n.position.y,
-          config: (n.data as Record<string, unknown>).config || {},
+          config: ((n.data as Record<string, unknown>).config as Record<string, unknown>) || {},
         })),
         edges: edges.map((e) => ({
           source_node_id: e.source,
           target_node_id: e.target,
-          label: e.label || "",
+          label: (e as Record<string, unknown>).label as string || "",
           condition: {},
         })),
-      });
-      setMessage(`Saved! Workflow ID: ${data.id?.slice(0, 8) || "created"}`);
+      };
+
+      if (workflowId) {
+        await api.put(`/core/admin/workflows/${workflowId}/`, body);
+        setMessage("Workflow updated");
+      } else {
+        const { data } = await api.post("/core/admin/workflows/", body);
+        setWorkflowId(data.id);
+        setMessage(`Saved! ID: ${data.id?.slice(0, 8)}`);
+      }
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       setMessage(typeof detail === "string" ? detail : JSON.stringify(err?.response?.data || err.message));
@@ -212,6 +303,17 @@ export default function WorkflowDesignerPage() {
       <div className="flex flex-1 flex-col">
         {/* Toolbar */}
         <div className="flex items-center gap-3 border-b border-secondary-200 bg-white px-4 py-2">
+          <select
+            value={workflowId || ""}
+            onChange={(e) => e.target.value ? loadWorkflow(e.target.value) : newWorkflow()}
+            className="rounded border border-secondary-300 px-2 py-1 text-sm min-w-[160px]"
+          >
+            <option value="">-- New workflow --</option>
+            {workflows?.results.map((w) => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+          <div className="w-px h-6 bg-secondary-300" />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -379,6 +481,14 @@ export default function WorkflowDesignerPage() {
                 }}
                 className="mt-1 w-full rounded border border-secondary-300 px-2 py-1 text-sm"
               />
+            </div>
+            <div className="border-t border-secondary-200 pt-3">
+              <button
+                onClick={deleteSelectedNode}
+                className="w-full rounded border border-danger-300 bg-white px-3 py-1.5 text-sm text-danger-600 hover:bg-danger-50"
+              >
+                Delete node
+              </button>
             </div>
           </div>
         </div>
