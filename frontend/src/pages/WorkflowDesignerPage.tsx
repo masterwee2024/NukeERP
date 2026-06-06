@@ -179,6 +179,12 @@ export default function WorkflowDesignerPage() {
     staleTime: 60_000,
   });
 
+  const { data: users } = useQuery<Array<{ id: string; email: string; full_name: string }>>({
+    queryKey: ["users"],
+    queryFn: () => api.get("/core/admin/users/").then((r) => r.data),
+    staleTime: 60_000,
+  });
+
   const updateNodeConfig = (nodeId: string, patch: Record<string, unknown>) => {
     setNodes((nds) =>
       nds.map((n) =>
@@ -429,9 +435,13 @@ export default function WorkflowDesignerPage() {
                               className="w-full rounded border border-secondary-300 px-2 py-1 text-xs"
                             >
                               <option value="">-- Select --</option>
-                              {roles?.map((r) => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                              ))}
+                              {a.type === "role"
+                                ? roles?.map((r) => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                  ))
+                                : users?.map((u) => (
+                                    <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                                  ))}
                             </select>
                           </div>
                           <button
