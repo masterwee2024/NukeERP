@@ -4,6 +4,7 @@ import { useAction } from "@/components/ui/ConfirmDialog";
 import api from "@/lib/api";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useDebounce } from "@/hooks/useDebounce";
+import FormPageLayout from "@/components/shared/FormPageLayout";
 import {
   ChevronRight,
   ChevronDown,
@@ -1396,17 +1397,20 @@ export default function AccountTreePage() {
         </div>
       )}
 
-      {/* Desktop: Split pane */}
+      {/* Desktop: Resizable split pane */}
       {!isMobile && (
-        <div className="flex h-[calc(100vh-120px)]">
-          {/* Left: Tree */}
-          <div className="w-[380px] shrink-0 overflow-y-auto border-r border-secondary-200 p-4">
-            {renderTree()}
-          </div>
-
-          {/* Right: Detail */}
-          <div className="flex-1 overflow-y-auto p-6">{renderDetail()}</div>
-        </div>
+        <FormPageLayout
+          leftPanel={{
+            id: "tree",
+            label: "Accounts",
+            content: <div className="p-4">{renderTree()}</div>,
+          }}
+          rightPanel={{
+            id: "detail",
+            label: "Account Detail",
+            content: <div className="p-6">{renderDetail()}</div>,
+          }}
+        />
       )}
 
       {/* Create/Edit Modal */}
