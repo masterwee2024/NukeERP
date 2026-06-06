@@ -121,7 +121,7 @@ def get_account_tree(company_id: UUID | None = None) -> list[dict]:
                 "is_active": a.is_active,
                 "mfrs_code": a.mfrs_code,
                 "parent_id": str(a.parent_id) if a.parent_id else None,
-                "children": _build_children(a.id) if a.is_group else [],
+                "children": _build_children(a.id),
             }
             for a in accounts.filter(parent_id=parent_id)
         ]
