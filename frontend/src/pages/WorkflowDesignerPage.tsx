@@ -198,7 +198,8 @@ export default function WorkflowDesignerPage() {
       });
       setMessage(`Saved! Workflow ID: ${data.id?.slice(0, 8) || "created"}`);
     } catch (err: any) {
-      setMessage(err?.response?.data?.detail || "Failed to save");
+      const detail = err?.response?.data?.detail;
+      setMessage(typeof detail === "string" ? detail : JSON.stringify(err?.response?.data || err.message));
     } finally {
       setSaving(false);
     }
