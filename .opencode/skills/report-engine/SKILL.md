@@ -765,20 +765,33 @@ Mobile = **filter → export**. The data is only consumed as a downloaded file.
 
 **Report Header (top of report panel):**
 ```
+Acme Sdn Bhd
 Trial Balance
 Period: January 2026 — March 2026
 Generated: 6/6/2026, 7:15 AM — 164 rows
 ```
+- Company name from `GET /core/companies/current/` (frontend) or `Company` model (export)
 - Report name from `ReportDefinition`
 - Period range resolved from UUIDs via cached periods API
 - Generated timestamp and row count
 
 **Report Footer (bottom of report panel):**
 ```
-────────────────────────────────────────
-End of Report — 164 rows
-Generated: 6/6/2026, 7:15 AM
+End of Report — 164 rows              Page 1 of 3
 ```
+- Left: "End of Report — X rows"
+- Right: "Page X of Y" (on-screen uses `data.page` / `Math.ceil(total_rows / page_size)`; export static "Page 1 of 1")
+
+**Export Behaviour:**
+| Button | Backend | Content-Type | File Ext | Behaviour |
+|--------|---------|-------------|----------|-----------|
+| CSV | Real CSV generator | `text/csv` | `.csv` | Opens in browser tab (inline) |
+| PDF | HTML table stub | `text/html` | `.html` | Opens in browser tab, print-to-PDF with Ctrl+P |
+| Excel | HTML table stub | `text/html` | `.html` | Opens in browser tab |
+
+- `Content-Disposition: inline` (not `attachment`) — opens in browser, doesn't force download
+- New tab opened via `window.open("about:blank")` on click (popup-safe), blob fetched with auth headers via `api.get(url, { responseType: "blob" })`, then `win.location.href = blobUrl`
+- Blob type explicitly set from response `Content-Type` header to ensure correct rendering
 
 ## P&L (T026) — Extension Pattern
 
