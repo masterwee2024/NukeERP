@@ -156,6 +156,40 @@ WORKFLOW_MODULE_CHOICES = [
     ("hrm", "HRM"),
 ]
 
+WORKFLOW_DOCUMENT_TYPE_CHOICES = [
+    ("", "---------"),
+    ("financial.JournalEntry", "Journal Entry"),
+    ("scm.PurchaseOrder", "Purchase Order"),
+    ("scm.SalesOrder", "Sales Order"),
+    ("scm.GoodsReceiptNote", "Goods Receipt Note"),
+    ("scm.DeliveryOrder", "Delivery Order"),
+    ("crm.Quotation", "Quotation"),
+    ("crm.CustomerInvoice", "Customer Invoice"),
+    ("hrm.LeaveRequest", "Leave Request"),
+    ("hrm.Claim", "Claim"),
+    ("hrm.ExpenseReport", "Expense Report"),
+    ("mrp.WorkOrder", "Work Order"),
+    ("assets.AssetDisposal", "Asset Disposal"),
+    ("treasury.Payment", "Payment"),
+    ("treasury.Receipt", "Receipt"),
+]
+
+# Named constants for service code to reference instead of raw strings
+DOC_TYPE_JOURNAL_ENTRY = "financial.JournalEntry"
+DOC_TYPE_PURCHASE_ORDER = "scm.PurchaseOrder"
+DOC_TYPE_SALES_ORDER = "scm.SalesOrder"
+DOC_TYPE_GOODS_RECEIPT_NOTE = "scm.GoodsReceiptNote"
+DOC_TYPE_DELIVERY_ORDER = "scm.DeliveryOrder"
+DOC_TYPE_QUOTATION = "crm.Quotation"
+DOC_TYPE_CUSTOMER_INVOICE = "crm.CustomerInvoice"
+DOC_TYPE_LEAVE_REQUEST = "hrm.LeaveRequest"
+DOC_TYPE_CLAIM = "hrm.Claim"
+DOC_TYPE_EXPENSE_REPORT = "hrm.ExpenseReport"
+DOC_TYPE_WORK_ORDER = "mrp.WorkOrder"
+DOC_TYPE_ASSET_DISPOSAL = "assets.AssetDisposal"
+DOC_TYPE_PAYMENT = "treasury.Payment"
+DOC_TYPE_RECEIPT = "treasury.Receipt"
+
 WORKFLOW_NODE_TYPE_CHOICES = [
     ("start", "Start"),
     ("end", "End"),
@@ -194,7 +228,7 @@ class WorkflowDefinition(ConcurrencyModel):
     module = models.CharField(max_length=50, choices=WORKFLOW_MODULE_CHOICES)
     document_type = models.CharField(
         max_length=100,
-        help_text="e.g. PurchaseOrder, SalesInvoice, LeaveRequest",
+        choices=WORKFLOW_DOCUMENT_TYPE_CHOICES,
     )
     version = models.PositiveIntegerField(default=1)
     flow_data = models.JSONField(

@@ -100,7 +100,7 @@ def submit_for_approval(
     the entry status to 'submitted'. If no workflow_id is given,
     auto-selects the first active workflow for this document type.
     """
-    from apps.core.models import WorkflowDefinition
+    from apps.core.models import DOC_TYPE_JOURNAL_ENTRY, WorkflowDefinition
     from apps.core.services.workflow_service import create_execution
 
     entry = JournalEntry.objects.select_for_update().get(id=entry_id)
@@ -114,7 +114,7 @@ def submit_for_approval(
     if workflow_id is None:
         workflow = (
             WorkflowDefinition.objects.filter(
-                document_type="financial.JournalEntry",
+                document_type=DOC_TYPE_JOURNAL_ENTRY,
                 is_active=True,
             )
             .filter(models.Q(company_id=company_id) | models.Q(company__isnull=True))
@@ -130,7 +130,7 @@ def submit_for_approval(
 
     create_execution(
         workflow_id=workflow_id,
-        document_type="financial.JournalEntry",
+        document_type=DOC_TYPE_JOURNAL_ENTRY,
         document_id=entry.id,
         requester=requester,
         company_id=company_id,

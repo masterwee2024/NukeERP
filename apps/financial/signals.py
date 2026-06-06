@@ -4,6 +4,7 @@ import logging
 
 from django.db.models.signals import post_save
 
+from apps.core.models import DOC_TYPE_JOURNAL_ENTRY
 from apps.financial.services.posting_service import approve_submitted_entry
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ def on_workflow_completed(sender, instance, created, raw, update_fields, **kwarg
         return
     if instance.status != "completed":
         return
-    if instance.document_type != "financial.JournalEntry":
+    if instance.document_type != DOC_TYPE_JOURNAL_ENTRY:
         return
     try:
         approve_submitted_entry(instance.document_id)
