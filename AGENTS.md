@@ -388,6 +388,7 @@ All test writing is delegated to the **test writer agent** (`.opencode/agent/tes
 
 **MANDATORY: Before starting any task, acknowledge these steps:**
 
+- [ ] 0. **Check for orphan fixes** — Run `git log --all --not --remotes --oneline` and inspect any commits not on any remote branch. If they contain fixes, they must be cherry-picked to master or merged via PR before branching. WIP/stash commits that never made it to `origin/master` will be lost when branching from master.
 - [ ] 1. **Read task spec** — `docs/tXXX.md` has everything
 - [ ] 2. **Check dependencies** — task spec lists what must be done first
 - [ ] 3. **Create branch** — DELEGATE to git agent: "create branch for TXXX"
@@ -597,6 +598,8 @@ Menus are seeded in `apps/core/management/commands/seed_menus.py`. The `SidebarI
 3. Hard-refresh browser (Ctrl+Shift+R) to clear React Query menu cache
 
 ## Common Pitfalls
+
+0. **Orphan WIP commits lost when branching** — `git log --all --not --remotes` shows commits not pushed to any remote. If they contain fixes, cherry-pick them to master before branching. WIP/stash commits that never made it to `origin/master` are invisible when branching from master and will be overwritten. Always check step 0 before starting a new task.
 
 1. **Forgetting `company_id` filter** — every list query must filter by `request.user.company_id`
 2. **Using `window.confirm()`** — use `useConfirm()` hook instead
