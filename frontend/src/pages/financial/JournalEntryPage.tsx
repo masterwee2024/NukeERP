@@ -28,6 +28,7 @@ interface Account {
   code: string;
   name: string;
   account_type: string;
+  children?: Account[];
 }
 
 interface JournalLine {
@@ -353,6 +354,18 @@ function JournalEntryFormModal({
   const { execute } = useAction();
   const isEditing = !!editingEntry;
 
+  function flattenAccounts(accts: Account[]): Account[] {
+    const result: Account[] = [];
+    function walk(list: Account[]) {
+      for (const a of list) {
+        result.push(a);
+        if (a.children && a.children.length > 0) walk(a.children);
+      }
+    }
+    walk(accts);
+    return result;
+  }
+
   // Fetch accounts for dropdown
   const { data: accountsData } = useQuery({
     queryKey: ["financial-accounts-list"],
@@ -364,7 +377,7 @@ function JournalEntryFormModal({
     },
     staleTime: 60_000,
   });
-  const accounts = accountsData || [];
+  const accounts = flattenAccounts(accountsData || []);
 
   // Form state
   const [date, setDate] = useState(() => {

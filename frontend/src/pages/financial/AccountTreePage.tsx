@@ -1078,6 +1078,21 @@ export default function AccountTreePage() {
 
   const accounts = accountsData || [];
 
+  // Auto-expand level 0 and level 1 accounts when tree first loads
+  useEffect(() => {
+    if (accounts.length > 0 && expandedIds.size === 0) {
+      const ids = new Set<string>();
+      function walk(list: Account[], depth: number) {
+        for (const acc of list) {
+          if (depth <= 1 && acc.children?.length) ids.add(acc.id);
+          if (acc.children?.length) walk(acc.children, depth + 1);
+        }
+      }
+      walk(accounts, 0);
+      setExpandedIds(ids);
+    }
+  }, [accounts]);
+
   // Filtered accounts based on search
   const filteredAccounts = useMemo(() => {
     if (!debouncedSearch) return accounts;
