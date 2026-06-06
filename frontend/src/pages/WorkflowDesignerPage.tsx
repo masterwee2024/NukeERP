@@ -90,7 +90,7 @@ export default function WorkflowDesignerPage() {
 
   const { data: roles } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["roles"],
-    queryFn: () => api.get("/core/roles/").then((r) => r.data),
+    queryFn: () => api.get("/core/admin/roles/").then((r) => r.data),
     staleTime: 60_000,
   });
 
