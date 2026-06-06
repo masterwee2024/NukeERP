@@ -55,14 +55,6 @@ MENU_TREE = [
                         "sort_order": 1,
                         "module": "financial",
                     },
-                    {
-                        "name": "Trial Balance",
-                        "slug": "financial-gl-trial",
-                        "icon": "Scale",
-                        "url": "/app/financial/gl/trial-balance",
-                        "sort_order": 2,
-                        "module": "financial",
-                    },
                 ],
             },
             {
