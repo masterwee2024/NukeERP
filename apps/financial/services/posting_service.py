@@ -4,11 +4,13 @@ import logging
 from datetime import date
 from uuid import UUID
 
+from django.core.cache import cache
 from django.db import models, transaction
 from django.utils import timezone
 
 from apps.financial.models import (
     Account,
+    AccountPeriodBalance,
     FinancialPeriod,
     GeneralLedger,
     JournalEntry,
@@ -151,6 +153,44 @@ def approve_submitted_entry(entry_id: UUID) -> JournalEntry:
     return entry
 
 
+def _update_period_balance(account_id, company_id, period, debit, credit):
+    """Update AccountPeriodBalance for a single line within a transaction.
+
+    Uses select_for_update to prevent concurrent overwrites.
+    """
+    from decimal import Decimal
+
+    balance, _ = AccountPeriodBalance.objects.select_for_update().get_or_create(
+        account_id=account_id,
+        company_id=company_id,
+        period=period,
+        defaults={
+            "opening_debit": 0,
+            "opening_credit": 0,
+            "period_debit": 0,
+            "period_credit": 0,
+            "closing_debit": 0,
+            "closing_credit": 0,
+        },
+    )
+
+    db = Decimal(str(debit))
+    cr = Decimal(str(credit))
+    balance.period_debit += db
+    balance.period_credit += cr
+    balance.closing_debit += db
+    balance.closing_credit += cr
+    balance.save()
+
+
+def _invalidate_report_cache(company_id: UUID):
+    """Invalidate all report caches for a company when new GL data is posted."""
+    try:
+        cache.delete_pattern(f"*report*{company_id}*")
+    except Exception:
+        pass
+
+
 @transaction.atomic
 def post_journal_entry(entry_id: UUID, company_id: UUID | None = None) -> JournalEntry:
     """Post a journal entry to the General Ledger.
@@ -219,6 +259,12 @@ def post_journal_entry(entry_id: UUID, company_id: UUID | None = None) -> Journa
             company=entry.company,
             period=period,
         )
+
+        _update_period_balance(
+            line.account_id, entry.company_id, period, line.debit, line.credit
+        )
+
+    _invalidate_report_cache(entry.company_id)
 
     entry.status = "posted"
     entry.posted_at = timezone.now()

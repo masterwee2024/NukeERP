@@ -44,6 +44,7 @@ const WorkflowDesignerPage = lazy(() => import("./pages/WorkflowDesignerPage"));
 const AccountTreePage = lazy(() => import("./pages/financial/AccountTreePage"));
 const JournalEntryPage = lazy(() => import("./pages/financial/JournalEntryPage"));
 const PeriodManagementPage = lazy(() => import("./pages/financial/PeriodManagementPage"));
+const TrialBalancePage = lazy(() => import("./pages/financial/TrialBalancePage"));
 const TaxCodePage = lazy(() => import("./pages/financial/TaxCodePage"));
 const MessagingPage = lazy(() => import("./pages/MessagingPage"));
 const EmailApprovalExecutePage = lazy(() => import("./pages/EmailApprovalExecutePage"));
@@ -81,6 +82,7 @@ export default function App() {
                     <Route path="financial/journal-entries" element={<JournalEntryPage />} />
                     <Route path="financial/periods" element={<PeriodManagementPage />} />
                     <Route path="financial/tax-codes" element={<TaxCodePage />} />
+                    <Route path="financial/reports/trial-balance" element={<TrialBalancePage />} />
                     <Route path="financial/*" element={<Dashboard />} />
                     <Route path="assets/*" element={<Dashboard />} />
                     <Route path="treasury/*" element={<Dashboard />} />

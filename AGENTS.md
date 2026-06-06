@@ -33,8 +33,8 @@ npx playwright test               # E2E (requires backend running)
 npx playwright test tests/e2e/specs/ap-invoice.spec.ts      # single spec
 
 # Docker
-docker compose up -d              # start all services
-docker compose down
+docker compose -f docker-compose.local.yml up -d   # start Redis only
+docker compose -f docker-compose.local.yml down
 docker compose logs -f django     # backend logs
 docker compose exec django python manage.py shell
 
@@ -326,6 +326,52 @@ test(scm): add stock movement concurrency tests
 docs(T005): update task spec with menu API details
 ```
 
+### Backend Builder Agent
+
+All backend implementation (models, services, API) is delegated to the **backend builder agent** (`.opencode/agent/backend-builder.md`).
+
+**Trigger phrases:** "build backend for TXXX", "implement TXXX backend", "create API for", "add model and service for"
+
+**When to use:**
+- Implementing a new task — models → services → API
+- Adding new API endpoints
+- Creating new models and services
+
+**What it delivers:**
+- Models, migrations, services, API schemas + endpoints
+- **Service-level unit tests** only (fast, full-context tests)
+- API/integration tests are handled by the test writer agent
+
+**When NOT to use:**
+- For UI/frontend work — use UI builder agent instead
+- For code review — use code review agent
+
+### Test Writer Agent
+
+All test writing is delegated to the **test writer agent** (`.opencode/agent/test-writer.md`).
+
+**Trigger phrases:** "write tests for", "add tests for", "test the", "create test suite for"
+
+**When to use:**
+- After backend implementation — write Pytest tests for services and APIs
+- After frontend implementation — write Vitest tests for components and hooks
+- For new E2E flows — write Playwright specs
+
+**What it does:**
+| Layer | Tool | Test File Location |
+|---|---|---|
+| Backend | Pytest | `tests/backend/{module}/test_{resource}.py` |
+| Frontend | Vitest | `frontend/src/tests/{Component}.test.tsx` |
+| E2E | Playwright | `tests/e2e/specs/{module}-{feature}.spec.ts` |
+
+**Important:** Service-level unit tests are already written by the backend builder. This agent writes **API/integration tests** (auth, company scoping, status transitions), **frontend component tests**, and **E2E flows**.
+
+**Self-verify rule:** Always run the tests you write and confirm they pass before handoff. Never delegate failing tests downstream.
+
+**When NOT to use:**
+- For running tests — use test-runner agent instead
+- For reviewing tests — use code review agent
+
 ### Agent Delegation Rules
 
 **Sub-agents are assistants, not replacements for judgment.**
@@ -345,15 +391,18 @@ docs(T005): update task spec with menu API details
 - [ ] 1. **Read task spec** — `docs/tXXX.md` has everything
 - [ ] 2. **Check dependencies** — task spec lists what must be done first
 - [ ] 3. **Create branch** — DELEGATE to git agent: "create branch for TXXX"
-- [ ] 4. **Implement** — follow architecture conventions in this file
-- [ ] 4b. **If task has UI components** — DELEGATE to UI builder agent: "build page for XXX"
-- [ ] 5. **Write tests** — match coverage thresholds
+- [ ] 4. **Implement** — delegate to backend builder agent: "build backend for TXXX". The backend builder handles models, services, APIs, and tests.
+- [ ] 4b. **If task has UI components (non-report)** — DELEGATE to UI builder agent: "build page for XXX"
+- [ ] 4c. **If task is a report (T025–T028, aging, tax, etc.)** — DELEGATE to report builder agent: "build report for TXXX". Do NOT use backend-builder or ui-builder for reports.
+- [ ] 5. **Write tests** — DELEGATE to test-writer agent: "write tests for TXXX"
+- [ ] 5b. **If UI was built in 4b** — DELEGATE to test-writer agent: "write frontend tests for TXXX"
 - [ ] 6. **Run checks** — DELEGATE to test-runner agent: "run tests"
 - [ ] 7. **Self-review** — DELEGATE to code-review agent: "review my changes"
 - [ ] 8. **Update task spec** — mark deliverables as done, fill test results table
 - [ ] 9. **Create PR** — DELEGATE to git agent: "create PR for TXXX"
 - [ ] 10. **Merge** — squash-merge after CI passes
-- [ ] 11. **Rebuild Docker (if needed)** — DELEGATE to Docker agent: "rebuild containers". Only required if `pyproject.toml`, `Dockerfile`, `package*.json`, or root-level `.py` files changed. If only `apps/` or `frontend/src/` changed, skip — volume mounts handle hot-reload.
+- [ ] 11. **Restart Docker (if adding Celery tasks/Channels consumers)** — `docker compose -f docker-compose.local.yml restart redis`
+- [ ] 12. **Restart dev servers** — Run `dev stop` then `dev start` from repo root to restart Django + Frontend
 
 **If you skip step 3 or 6, you are violating project rules.**
 
@@ -461,6 +510,22 @@ All admin CRUD and list-detail UI pages are delegated to the **UI builder agent*
 6. Verifies `npm run build` succeeds
 
 **Do NOT build admin CRUD pages manually** — always use the agent for consistent responsive design.
+
+### Report Builder Agent
+
+All report implementation (backend + frontend) is delegated to the **report builder agent** (`.opencode/agent/report-builder.md`).
+
+**Trigger phrases:** "build report for TXXX", "implement TXXX report", "create trial balance", "add report", "build TXXX"
+
+**What it does (full stack):**
+- Backend: `AccountPeriodBalance` pre-aggregation, `ReportDefinition` + `ReportParameter` registry, `ReportService` engine, API endpoints, seed data
+- Frontend: Shared filter/report components (`ReportFilters`, `ReportTable`, `DrillDownModal`, `ExportButtons`), report page, route + sidebar
+- Tests: Service unit tests + API integration tests + frontend component tests
+- Follows the `report-engine` skill (`.opencode/skills/report-engine/SKILL.md`)
+
+**Do NOT use other agents for report work** — the report builder handles models, services, API, frontend, and tests in a single pass. Using backend-builder or ui-builder for report tasks will produce wrong results (they don't know about the report engine pattern).
+
+**Trigger:** Any task involving report building (T025, T026, T027, T028, Aging reports, Tax reports, etc.) delegates to this agent.
 
 ### Docker Rebuild Agent
 

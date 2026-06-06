@@ -299,3 +299,146 @@ class TaxRate(ConcurrencyModel):
 
     def __str__(self):
         return f"{self.tax_code.code} @ {self.rate_percent}% from {self.effective_from}"
+
+
+class AccountPeriodBalance(ConcurrencyModel):
+    """Pre-aggregated period balance for each account-company-period."""
+
+    account = models.ForeignKey(
+        Account, on_delete=models.CASCADE, related_name="period_balances"
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="period_balances"
+    )
+    period = models.ForeignKey(
+        FinancialPeriod, on_delete=models.CASCADE, related_name="account_balances"
+    )
+    opening_debit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    opening_credit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    period_debit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    period_credit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    closing_debit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    closing_credit = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = "financial_accountperiodbalance"
+        unique_together = ("account", "company", "period")
+        verbose_name = "Account Period Balance"
+        verbose_name_plural = "Account Period Balances"
+
+    def __str__(self):
+        return f"{self.account.code} - {self.period.name}"
+
+
+REPORT_PARAM_TYPES = [
+    ("period", "Period (single)"),
+    ("period_range", "Period Range"),
+    ("account_tree", "Account Tree (hierarchical)"),
+    ("account_multi", "Account Multi-Select"),
+    ("customer_multi", "Customer Multi-Select"),
+    ("vendor_multi", "Vendor Multi-Select"),
+    ("date", "Date"),
+    ("date_range", "Date Range"),
+    ("checkbox", "Checkbox"),
+    ("select", "Dropdown Select"),
+    ("text", "Text Input"),
+]
+
+
+class ReportDefinition(ConcurrencyModel):
+    """Report definition — metadata for computed reports."""
+
+    code = models.SlugField(unique=True)
+    name = models.CharField(max_length=200)
+    module = models.CharField(max_length=50)
+    category = models.CharField(max_length=50, blank=True, default="")
+    company_scoped = models.BooleanField(default=True)
+    compute_type = models.CharField(
+        max_length=20, choices=[("sql", "SQL"), ("python", "Python Service")]
+    )
+    sql_template = models.TextField(blank=True)
+    service_method = models.CharField(max_length=300, blank=True, default="")
+    pre_aggregated = models.BooleanField(default=False)
+    supports_drill_down = models.BooleanField(default=False)
+    group_field = models.CharField(max_length=100, blank=True, default="")
+    show_subtotals = models.BooleanField(default=True)
+    show_grand_total = models.BooleanField(default=True)
+    page_size = models.PositiveIntegerField(default=100)
+    cache_ttl_seconds = models.PositiveIntegerField(default=300)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "financial_report_definition"
+        verbose_name = "Report Definition"
+        verbose_name_plural = "Report Definitions"
+
+    def __str__(self):
+        return self.name
+
+
+class ReportParameter(ConcurrencyModel):
+    """Parameter definition for a report — drives filter form rendering."""
+
+    report = models.ForeignKey(
+        ReportDefinition, on_delete=models.CASCADE, related_name="parameters"
+    )
+    key = models.SlugField()
+    label = models.CharField(max_length=200)
+    param_type = models.CharField(max_length=30, choices=REPORT_PARAM_TYPES)
+    required = models.BooleanField(default=False)
+    default_value = models.JSONField(null=True, blank=True)
+    options_source = models.CharField(max_length=300, blank=True, default="")
+    validation = models.JSONField(default=dict, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "financial_report_parameter"
+        ordering = ["sort_order"]
+        unique_together = ("report", "key")
+        verbose_name = "Report Parameter"
+        verbose_name_plural = "Report Parameters"
+
+    def __str__(self):
+        return f"{self.report.code}:{self.key}"
+
+
+class ReportExport(ConcurrencyModel):
+    """Tracks an async report export (CSV/PDF/Excel)."""
+
+    FORMAT_CHOICES = [
+        ("csv", "CSV"),
+        ("pdf", "PDF"),
+        ("xlsx", "Excel"),
+    ]
+    STATUS_CHOICES = [
+        ("generating", "Generating"),
+        ("ready", "Ready"),
+        ("failed", "Failed"),
+    ]
+
+    report = models.ForeignKey(
+        ReportDefinition, on_delete=models.CASCADE, related_name="exports"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="report_exports"
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name="report_exports"
+    )
+    format = models.CharField(max_length=10, choices=FORMAT_CHOICES)
+    params = models.JSONField(default=dict)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="generating"
+    )
+    file = models.FileField(upload_to="report_exports/%Y/%m/", blank=True)
+    error_message = models.TextField(blank=True, default="")
+    generated_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "financial_report_export"
+        verbose_name = "Report Export"
+        verbose_name_plural = "Report Exports"
+
+    def __str__(self):
+        return f"{self.report.code} - {self.format} - {self.status}"
