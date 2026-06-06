@@ -1,10 +1,14 @@
 """Notification service — handles in-app notification creation, read status, and WebSocket delivery."""
 
+import logging
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.utils import timezone
 
 from apps.core.models import Notification, NotificationType, User
+
+logger = logging.getLogger(__name__)
 
 
 def send_notification(
@@ -50,12 +54,17 @@ def send_notification(
     # Queue async tasks (Imported inline to avoid circular dependencies)
     from apps.core.tasks import send_notification_email, send_push_notification
 
-    if recipient.email:
-        send_notification_email.delay(notification.id)
+    try:
+        if recipient.email:
+            send_notification_email.delay(notification.id)
 
-    # Push notifications if subscriptions exist
-    if recipient.push_subscriptions.filter(is_active=True).exists():
-        send_push_notification.delay(recipient.id, title, message, link)
+        # Push notifications if subscriptions exist
+        if recipient.push_subscriptions.filter(is_active=True).exists():
+            send_push_notification.delay(recipient.id, title, message, link)
+    except Exception:
+        logger.warning(
+            "Failed to queue notification tasks for notification %s", notification.id
+        )
 
     return notification
 

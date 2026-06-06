@@ -118,7 +118,12 @@ def _create_pending_steps_for_current_node(execution: WorkflowExecution) -> None
         )
 
         # Dispatch async approval email with secure links
-        send_approval_email.delay(str(execution.id), str(user.id))
+        try:
+            send_approval_email.delay(str(execution.id), str(user.id))
+        except Exception:
+            logger.warning(
+                "Failed to dispatch approval email for execution %s", execution.id
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +142,7 @@ def resolve_approvers(node: WorkflowNode, execution: WorkflowExecution) -> list[
     if not approvers_config:
         return []
 
-    from django.contrib.auth.models import Group
+    from apps.core.models import UserRole
 
     candidate_users: list[User] = []
     for entry in approvers_config:
@@ -152,12 +157,10 @@ def resolve_approvers(node: WorkflowNode, execution: WorkflowExecution) -> list[
             except User.DoesNotExist:
                 continue
         elif approver_type == "role":
-            try:
-                group = Group.objects.get(id=approver_id)
-                for u in group.user_set.filter(is_active=True):
-                    candidate_users.append(u)
-            except Group.DoesNotExist:
-                continue
+            for ur in UserRole.objects.filter(
+                role_id=approver_id, user__is_active=True
+            ).select_related("user"):
+                candidate_users.append(ur.user)
 
     company_id = execution.company_id
     valid_users = []
