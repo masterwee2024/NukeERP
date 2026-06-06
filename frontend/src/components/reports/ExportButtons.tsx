@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import api from "@/lib/api";
 
 interface ExportButtonsProps {
@@ -8,8 +8,18 @@ interface ExportButtonsProps {
 
 export default function ExportButtons({ reportCode, filters }: ExportButtonsProps) {
   const [exporting, setExporting] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  };
 
   const handleExport = async (format: string) => {
+    setExportError(null);
     setExporting(format);
     try {
       const resp = await api.post(`/financial/reports/${reportCode}/export/`, {
@@ -19,56 +29,70 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
       const { export_id } = resp.data;
 
       // Poll for completion
-      const poll = setInterval(async () => {
-        const statusResp = await api.get(`/financial/exports/${export_id}/`);
-        const { status, download_url } = statusResp.data;
-        if (status === "ready") {
-          clearInterval(poll);
-          if (download_url) {
-            window.open(download_url, "_blank");
+      pollingRef.current = setInterval(async () => {
+        try {
+          const statusResp = await api.get(`/financial/exports/${export_id}/`);
+          const { status, download_url } = statusResp.data;
+          if (status === "ready") {
+            stopPolling();
+            if (download_url) {
+              window.open(download_url, "_blank");
+            }
+            setExporting(null);
+          } else if (status === "failed") {
+            stopPolling();
+            setExporting(null);
+            setExportError("Export failed. Please try again.");
           }
+        } catch {
+          stopPolling();
           setExporting(null);
-        } else if (status === "failed") {
-          clearInterval(poll);
-          setExporting(null);
-          alert("Export failed. Please try again.");
+          setExportError("Export failed. Please try again.");
         }
       }, 1000);
 
       // timeout after 30 seconds
       setTimeout(() => {
-        clearInterval(poll);
-        setExporting(null);
+        if (pollingRef.current) {
+          stopPolling();
+          setExporting(null);
+          setExportError("Export timed out. Please try again.");
+        }
       }, 30000);
     } catch {
       setExporting(null);
-      alert("Export request failed.");
+      setExportError("Export request failed. Please try again.");
     }
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <button
-        onClick={() => handleExport("csv")}
-        disabled={exporting !== null}
-        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-      >
-        {exporting === "csv" ? "Exporting..." : "Export CSV"}
-      </button>
-      <button
-        onClick={() => handleExport("pdf")}
-        disabled={exporting !== null}
-        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-      >
-        {exporting === "pdf" ? "Exporting..." : "Export PDF"}
-      </button>
-      <button
-        onClick={() => handleExport("xlsx")}
-        disabled={exporting !== null}
-        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-      >
-        {exporting === "xlsx" ? "Exporting..." : "Export Excel"}
-      </button>
+    <div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => handleExport("csv")}
+          disabled={exporting !== null}
+          className="rounded-md border border-secondary-300 bg-white px-3 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50 disabled:opacity-50"
+        >
+          {exporting === "csv" ? "Exporting..." : "Export CSV"}
+        </button>
+        <button
+          onClick={() => handleExport("pdf")}
+          disabled={exporting !== null}
+          className="rounded-md border border-secondary-300 bg-white px-3 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50 disabled:opacity-50"
+        >
+          {exporting === "pdf" ? "Exporting..." : "Export PDF"}
+        </button>
+        <button
+          onClick={() => handleExport("xlsx")}
+          disabled={exporting !== null}
+          className="rounded-md border border-secondary-300 bg-white px-3 py-2 text-sm font-medium text-secondary-700 hover:bg-secondary-50 disabled:opacity-50"
+        >
+          {exporting === "xlsx" ? "Exporting..." : "Export Excel"}
+        </button>
+      </div>
+      {exportError && (
+        <p className="mt-1 text-xs text-danger-600">{exportError}</p>
+      )}
     </div>
   );
 }
