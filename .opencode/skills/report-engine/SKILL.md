@@ -755,6 +755,14 @@ Three colored cards: Total Debit, Total Credit, Net Balance. Balance card is gre
 **Chart Replacement:**
 When ViewSwitcher is set to "Chart", the table is replaced with a Recharts stacked bar chart grouped by `groupField` (e.g. account_type). Each bar shows debit (blue) and credit (amber) segments.
 
+**Mobile View (<768px):**
+On mobile (via `useIsMobile()` hook), the report panel shows only:
+- Report title + generated timestamp
+- 3 export buttons (CSV, PDF, Excel) in a vertical column
+- No table, no chart, no ViewSwitcher, no filter badges, no summary cards
+
+Mobile = **filter → export**. The data is only consumed as a downloaded file.
+
 **Report Header (top of report panel):**
 ```
 Trial Balance
