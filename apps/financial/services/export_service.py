@@ -98,28 +98,53 @@ def _generate_html_export(export: ReportExport):
     """Generate an HTML table export (fallback for PDF/XLSX stubs)."""
     from django.core.files.base import ContentFile
 
+    from apps.financial.models import Period
+
     data = ReportService().run(export.report.code, export.params, export.company_id)
     cols = data["columns"]
+
+    # Resolve period names from UUIDs in params
+    period_names = []
+    for key in ("period_from", "period_to"):
+        pid = export.params.get(key)
+        if pid:
+            try:
+                p = Period.objects.get(id=pid)
+                period_names.append(p.name)
+            except Exception:
+                period_names.append(str(pid))
+    period_label = " — ".join(period_names) if period_names else ""
+
+    generated_label = (
+        export.generated_at.strftime("%Y-%m-%d %H:%M") if export.generated_at else "N/A"
+    )
 
     html_parts = ["<!DOCTYPE html><html><head><meta charset='utf-8'>"]
     html_parts.append(f"<title>{escape(export.report.name)}</title>")
     html_parts.append("<style>")
     html_parts.append("body{font-family:sans-serif;margin:2rem}")
-    html_parts.append("h1{font-size:1.25rem;color:#333}")
+    html_parts.append("h1{font-size:1.25rem;color:#333;margin-bottom:0.25rem}")
+    html_parts.append(".meta{font-size:0.8rem;color:#666;margin-bottom:0.25rem}")
     html_parts.append("table{border-collapse:collapse;width:100%;margin-top:1rem}")
     html_parts.append(
         "th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:0.875rem}"
     )
     html_parts.append("th{background:#f5f5f5;font-weight:600}")
     html_parts.append("tr:nth-child(even){background:#fafafa}")
-    html_parts.append(".footer{margin-top:1rem;font-size:0.75rem;color:#999}")
-    html_parts.append("</style></head><body>")
-    html_parts.append(f"<h1>{escape(export.report.name)}</h1>")
     html_parts.append(
-        f"<p style='color:#666;font-size:0.875rem'>"
-        f"Generated: {export.generated_at.strftime('%Y-%m-%d %H:%M') if export.generated_at else 'N/A'} &mdash; "
-        f"{len(data['rows'])} rows</p>"
+        ".footer{border-top:1px solid #ddd;margin-top:1.5rem;padding-top:0.75rem;font-size:0.75rem;color:#999;text-align:center}"
     )
+    html_parts.append("</style></head><body>")
+
+    # Header
+    html_parts.append(f"<h1>{escape(export.report.name)}</h1>")
+    if period_label:
+        html_parts.append(f"<p class='meta'>Period: {escape(period_label)}</p>")
+    html_parts.append(
+        f"<p class='meta'>Generated: {generated_label} &mdash; {len(data['rows'])} rows</p>"
+    )
+
+    # Table
     html_parts.append("<table><thead><tr>")
     for c in cols:
         html_parts.append(f"<th>{escape(c['label'])}</th>")
@@ -131,8 +156,11 @@ def _generate_html_export(export: ReportExport):
             html_parts.append(f"<td>{escape(str(val))}</td>")
         html_parts.append("</tr>")
     html_parts.append("</tbody></table>")
+
+    # Footer
     html_parts.append(
-        "<p class='footer'>End of Report &mdash; PDF engine pending, HTML preview</p>"
+        "<div class='footer'>End of Report &mdash; "
+        f"{len(data['rows'])} rows &mdash; Generated {generated_label}</div>"
     )
     html_parts.append("</body></html>")
 
