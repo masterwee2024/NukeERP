@@ -47,21 +47,26 @@ class ReportService:
         if cached:
             return cached
 
+        page = int(params.get("page", 1))
+        page_size = int(params.get("page_size", report.page_size))
+
         if report.compute_type == "sql":
-            data = self._run_sql(report.sql_template, params, company_id)
+            total_rows = self._count_sql(report.sql_template, params, company_id)
+            data = self._run_sql(
+                report.sql_template, params, company_id, page, page_size
+            )
         else:
             service_fn = import_string(report.service_method)
             data = service_fn(params, company_id)
+            total_rows = len(data)
+            data = self._paginate(data, page, page_size)
 
-        page = int(params.get("page", 1))
-        page_size = int(params.get("page_size", report.page_size))
-        paginated = self._paginate(data, page, page_size)
-        formatted = self._format_columns(paginated, report)
+        formatted = self._format_columns(data, report)
 
         result = {
             "columns": self._get_columns(report),
             "rows": formatted,
-            "total_rows": len(data),
+            "total_rows": total_rows,
             "page": page,
             "page_size": page_size,
             "generated_at": datetime.now(UTC).isoformat(),
@@ -72,17 +77,40 @@ class ReportService:
         cache.set(cache_key, result, report.cache_ttl_seconds)
         return result
 
-    def _run_sql(self, sql_template: str, params: dict, company_id: UUID) -> list[dict]:
-        """Execute parameterized SQL. Values injected via %(key)s binding."""
+    def _run_sql(
+        self,
+        sql_template: str,
+        params: dict,
+        company_id: UUID,
+        page: int = 1,
+        page_size: int = 100,
+    ) -> list[dict]:
+        """Execute parameterized SQL with LIMIT/OFFSET. Values injected via %(key)s binding."""
         sql_params = {"company_id": company_id}
         for key, value in params.items():
             if value is not None and value != "":
                 sql_params[key] = value
 
+        sql_params["_limit"] = page_size
+        sql_params["_offset"] = (page - 1) * page_size
+        sql = f"SELECT * FROM ({sql_template}) _report_query LIMIT %(_limit)s OFFSET %(_offset)s"
+
         with connection.cursor() as cursor:
-            cursor.execute(sql_template, sql_params)
+            cursor.execute(sql, sql_params)
             columns = [col[0] for col in cursor.description]
             return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
+
+    def _count_sql(self, sql_template: str, params: dict, company_id: UUID) -> int:
+        """Return total row count for a SQL report."""
+        sql_params = {"company_id": company_id}
+        for key, value in params.items():
+            if value is not None and value != "":
+                sql_params[key] = value
+
+        count_sql = f"SELECT COUNT(*) FROM ({sql_template}) _report_query"
+        with connection.cursor() as cursor:
+            cursor.execute(count_sql, sql_params)
+            return cursor.fetchone()[0]
 
     def _cache_key(self, report_code: str, params: dict, company_id: UUID) -> str:
         raw = f"report:{report_code}:{company_id}:{json.dumps(params, sort_keys=True, default=str)}"
