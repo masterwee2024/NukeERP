@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
 import {
   ReactFlow,
   addEdge,
@@ -82,6 +84,47 @@ export default function WorkflowDesignerPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  const { data: roles } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ["roles"],
+    queryFn: () => api.get("/core/roles/").then((r) => r.data),
+    staleTime: 60_000,
+  });
+
+  const updateNodeConfig = (nodeId: string, patch: Record<string, unknown>) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === nodeId
+          ? { ...n, data: { ...n.data, config: { ...((n.data as Record<string, unknown>).config as Record<string, unknown> || {}), ...patch } } }
+          : n
+      )
+    );
+  };
+
+  const addApprover = (nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const config = ((node.data as Record<string, unknown>).config as Record<string, unknown> || {}) as Record<string, unknown>;
+    const approvers: Array<{ type: string; id: string }> = (config.approvers as Array<{ type: string; id: string }>) || [];
+    updateNodeConfig(nodeId, { approvers: [...approvers, { type: "role", id: "" }] });
+  };
+
+  const removeApprover = (nodeId: string, idx: number) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const config = ((node.data as Record<string, unknown>).config as Record<string, unknown> || {}) as Record<string, unknown>;
+    const approvers: Array<{ type: string; id: string }> = (config.approvers as Array<{ type: string; id: string }>) || [];
+    updateNodeConfig(nodeId, { approvers: approvers.filter((_, i) => i !== idx) });
+  };
+
+  const updateApprover = (nodeId: string, idx: number, field: string, value: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const config = ((node.data as Record<string, unknown>).config as Record<string, unknown> || {}) as Record<string, unknown>;
+    const approvers: Array<{ type: string; id: string }> = (config.approvers as Array<{ type: string; id: string }>) || [];
+    const updated = approvers.map((a, i) => (i === idx ? { ...a, [field]: value } : a));
+    updateNodeConfig(nodeId, { approvers: updated });
+  };
+
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
@@ -140,7 +183,7 @@ export default function WorkflowDesignerPage() {
           label: n.data.label as string,
           position_x: n.position.x,
           position_y: n.position.y,
-          config: {},
+          config: (n.data as Record<string, unknown>).config || {},
         })),
         edges: edges.map((e) => ({
           source_node_id: e.source,
@@ -231,12 +274,16 @@ export default function WorkflowDesignerPage() {
 
       {/* Properties Panel */}
       {selectedNode && (
-        <div className="w-64 border-l border-secondary-200 bg-white p-4 overflow-y-auto">
+        <div className="w-72 border-l border-secondary-200 bg-white p-4 overflow-y-auto">
           <h3 className="mb-3 text-sm font-semibold text-secondary-800">Properties</h3>
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-secondary-500">Node ID</label>
               <p className="text-sm text-secondary-700">{selectedNode.id}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-500">Type</label>
+              <p className="text-sm text-secondary-700">{selectedNode.id.split("-")[0]}</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-500">Label</label>
@@ -251,6 +298,58 @@ export default function WorkflowDesignerPage() {
                 className="mt-1 w-full rounded border border-secondary-300 px-2 py-1 text-sm"
               />
             </div>
+
+            {/* Approve node: approver config */}
+            {selectedNode.id.startsWith("approve-") && (
+              <div className="border-t border-secondary-200 pt-3">
+                <label className="block text-xs font-medium text-secondary-500 mb-2">Approvers</label>
+                {(() => {
+                  const config = ((selectedNode.data as Record<string, unknown>).config as Record<string, unknown> || {}) as Record<string, unknown>;
+                  const approvers: Array<{ type: string; id: string }> = (config.approvers as Array<{ type: string; id: string }>) || [];
+                  return (
+                    <>
+                      {approvers.map((a, idx) => (
+                        <div key={idx} className="mb-2 flex items-start gap-2">
+                          <div className="flex-1">
+                            <select
+                              value={a.type}
+                              onChange={(e) => updateApprover(selectedNode.id, idx, "type", e.target.value)}
+                              className="w-full rounded border border-secondary-300 px-2 py-1 text-xs mb-1"
+                            >
+                              <option value="role">Role</option>
+                              <option value="user">User</option>
+                            </select>
+                            <select
+                              value={a.id}
+                              onChange={(e) => updateApprover(selectedNode.id, idx, "id", e.target.value)}
+                              className="w-full rounded border border-secondary-300 px-2 py-1 text-xs"
+                            >
+                              <option value="">-- Select --</option>
+                              {roles?.map((r) => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <button
+                            onClick={() => removeApprover(selectedNode.id, idx)}
+                            className="text-danger-500 hover:text-danger-700 text-sm leading-none mt-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => addApprover(selectedNode.id)}
+                        className="text-xs text-primary-600 hover:text-primary-800"
+                      >
+                        + Add approver
+                      </button>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-secondary-500">X</label>
               <input
