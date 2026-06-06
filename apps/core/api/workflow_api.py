@@ -510,7 +510,6 @@ def update_workflow(request, workflow_id: UUID, payload: WorkflowUpdateRequest):
             workflow.set_field(field, value)
 
         try:
-            workflow.version += 1
             workflow.save()
         except ConcurrencyError as e:
             raise HttpError(409, str(e)) from e
