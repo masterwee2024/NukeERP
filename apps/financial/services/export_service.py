@@ -98,7 +98,7 @@ def _generate_html_export(export: ReportExport):
     """Generate an HTML table export (fallback for PDF/XLSX stubs)."""
     from django.core.files.base import ContentFile
 
-    from apps.financial.models import Period
+    from apps.financial.models import FinancialPeriod
 
     data = ReportService().run(export.report.code, export.params, export.company_id)
     cols = data["columns"]
@@ -109,7 +109,7 @@ def _generate_html_export(export: ReportExport):
         pid = export.params.get(key)
         if pid:
             try:
-                p = Period.objects.get(id=pid)
+                p = FinancialPeriod.objects.get(id=pid)
                 period_names.append(p.name)
             except Exception:
                 period_names.append(str(pid))
