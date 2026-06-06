@@ -1,6 +1,19 @@
 import { useState, useRef } from "react";
 import api from "@/lib/api";
 
+async function downloadWithAuth(url: string, filename: string) {
+  const resp = await api.get(url, { responseType: "blob" });
+  const blob = new Blob([resp.data]);
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
+}
+
 interface ExportButtonsProps {
   reportCode: string;
   filters: Record<string, unknown>;
@@ -36,7 +49,7 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
           if (status === "ready") {
             stopPolling();
             if (download_url) {
-              window.open(download_url, "_blank");
+              await downloadWithAuth(download_url, `${reportCode}.${format}`);
             }
             setExporting(null);
           } else if (status === "failed") {

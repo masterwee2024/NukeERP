@@ -82,18 +82,10 @@ def _generate_csv_export(export: ReportExport):
 
 
 def _generate_pdf_stub(export: ReportExport):
-    """Placeholder for PDF generation."""
-    from django.utils import timezone
-
-    export.status = "ready"
-    export.generated_at = timezone.now()
-    export.save(update_fields=["status", "generated_at", "updated_at"])
+    """Placeholder — generates CSV as fallback until PDF engine is ready."""
+    _generate_csv_export(export)
 
 
 def _generate_xlsx_stub(export: ReportExport):
-    """Placeholder for Excel generation."""
-    from django.utils import timezone
-
-    export.status = "ready"
-    export.generated_at = timezone.now()
-    export.save(update_fields=["status", "generated_at", "updated_at"])
+    """Placeholder — generates CSV as fallback until Excel engine is ready."""
+    _generate_csv_export(export)
