@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
+import FormPageLayout from "@/components/shared/FormPageLayout";
 import ReportFilters from "@/components/reports/ReportFilters";
 import ReportTable from "@/components/reports/ReportTable";
 import ExportButtons from "@/components/reports/ExportButtons";
@@ -43,37 +44,36 @@ export default function TrialBalancePage() {
   });
 
   const handleDrillDown = (row: Record<string, unknown>, _columnKey: string) => {
-    const accountId = row.account_id as string || row.id as string;
+    const accountId = (row.account_id as string) || (row.id as string);
     const periodId = filters.period_to as string;
     if (accountId && periodId) {
       setDrillDown({ accountId, periodId });
     }
   };
 
-  return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-xl font-semibold text-gray-900">Trial Balance</h1>
-
-      <ReportFilters reportCode="trial_balance" onRun={setFilters} />
-
-      {isLoading && (
+  const renderReportContent = () => {
+    if (isLoading) {
+      return (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
         </div>
-      )}
+      );
+    }
 
-      {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+    if (isError) {
+      return (
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-danger-700">
           {(error as Error)?.message || "Failed to load report data."}
         </div>
-      )}
+      );
+    }
 
-      {data && !isLoading && (
-        <>
-          <div className="text-sm text-gray-500">
+    if (data && !isLoading) {
+      return (
+        <div className="space-y-4">
+          <div className="text-sm text-secondary-500">
             Generated: {new Date(data.generated_at).toLocaleString()} &mdash; {data.total_rows} rows
           </div>
-
           <ReportTable
             columns={data.columns}
             rows={data.rows}
@@ -82,16 +82,40 @@ export default function TrialBalancePage() {
             groupTotals={data.group_totals}
             onDrillDown={handleDrillDown}
           />
-
           <ExportButtons reportCode="trial_balance" filters={filters} />
-        </>
-      )}
-
-      {!data && !isLoading && !isError && Object.keys(filters).length === 0 && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center text-gray-500">
-          Select period range and click "Apply Filters" to generate the trial balance.
         </div>
-      )}
+      );
+    }
+
+    return (
+      <div className="rounded-lg border border-dashed border-secondary-300 p-12 text-center text-secondary-500">
+        Select period range and click "Apply Filters" to generate the trial balance.
+      </div>
+    );
+  };
+
+  return (
+    <div className="h-full">
+      <div className="border-b border-secondary-200 px-4 py-3 xl:px-6">
+        <h1 className="text-xl font-semibold text-secondary-900">Trial Balance</h1>
+      </div>
+
+      <FormPageLayout
+        leftPanel={{
+          id: "filters",
+          label: "Filters",
+          content: (
+            <div className="p-4">
+              <ReportFilters reportCode="trial_balance" onRun={setFilters} />
+            </div>
+          ),
+        }}
+        rightPanel={{
+          id: "report",
+          label: "Report",
+          content: <div className="h-full overflow-auto p-4 xl:p-6">{renderReportContent()}</div>,
+        }}
+      />
 
       <DrillDownModal
         open={drillDown !== null}
