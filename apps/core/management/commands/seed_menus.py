@@ -126,11 +126,19 @@ MENU_TREE = [
                 "module": "financial",
             },
             {
+                "name": "Periods",
+                "slug": "financial-periods",
+                "icon": "Calendar",
+                "url": "/app/financial/periods",
+                "sort_order": 7,
+                "module": "financial",
+            },
+            {
                 "name": "Reports",
                 "slug": "financial-reports",
                 "icon": "BarChart3",
                 "url": "",
-                "sort_order": 7,
+                "sort_order": 8,
                 "module": "financial",
                 "children": [
                     {

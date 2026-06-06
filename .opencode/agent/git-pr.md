@@ -26,6 +26,21 @@ If not provided, ask for them.
 
 ## Steps
 
+### 0. Check for Orphan WIP Commits
+
+Before creating a branch, check if there are any commits that exist locally but not on any remote branch. These are orphan WIP/stash commits that will be lost when branching from master.
+
+```powershell
+git log --all --not --remotes --oneline
+```
+
+If this returns any commits, inspect them with `git show <hash> --stat`. If they contain fixes:
+- Report them to the user before proceeding
+- Ask whether to cherry-pick them to master first, or include them in the new branch
+- Do NOT proceed with branch creation until orphan commits are resolved
+
+If the output is empty, proceed safely.
+
 ### 1. Create Branch
 
 ```powershell

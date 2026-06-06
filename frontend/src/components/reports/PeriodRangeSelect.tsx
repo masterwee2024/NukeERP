@@ -18,7 +18,7 @@ interface PeriodRangeSelectProps {
 export default function PeriodRangeSelect({ label, value, onChange }: PeriodRangeSelectProps) {
   const { data: periods = [] } = useQuery<Period[]>({
     queryKey: ["periods"],
-    queryFn: () => api.get("/api/v1/financial/periods/").then((r) => r.data),
+    queryFn: () => api.get("/financial/periods/").then((r) => r.data),
   });
 
   return (

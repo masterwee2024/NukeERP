@@ -23,7 +23,7 @@ export default function AccountTreeSelect({ label, values, onChange }: AccountTr
 
   const { data: tree = [] } = useQuery<AccountNode[]>({
     queryKey: ["accounts-tree"],
-    queryFn: () => api.get("/api/v1/financial/accounts/").then((r) => r.data.results || r.data),
+    queryFn: () => api.get("/financial/accounts/").then((r) => r.data.results || r.data),
   });
 
   const selected = new Set(values);

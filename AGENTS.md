@@ -388,7 +388,7 @@ All test writing is delegated to the **test writer agent** (`.opencode/agent/tes
 
 **MANDATORY: Before starting any task, acknowledge these steps:**
 
-- [ ] 0. **Check for orphan fixes** — Run `git log --all --not --remotes --oneline` and inspect any commits not on any remote branch. If they contain fixes, they must be cherry-picked to master or merged via PR before branching. WIP/stash commits that never made it to `origin/master` will be lost when branching from master.
+- [ ] 0. **Check for orphan fixes** — Run `git log --all --not --remotes --oneline` and inspect any commits not on any remote branch. If they contain fixes, they must be cherry-picked to master or merged via PR before branching. WIP/stash commits that never made it to `origin/master` will be lost when branching from master. **This step is automated by the git agent when creating a branch.**
 - [ ] 1. **Read task spec** — `docs/tXXX.md` has everything
 - [ ] 2. **Check dependencies** — task spec lists what must be done first
 - [ ] 3. **Create branch** — DELEGATE to git agent: "create branch for TXXX"
