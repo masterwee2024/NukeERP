@@ -74,7 +74,8 @@ function SummaryCard({
 }
 
 export default function ReportPage() {
-  const { reportCode } = useParams<{ reportCode: string }>();
+  const { reportCode: rawCode } = useParams<{ reportCode: string }>();
+  const reportCode = rawCode?.replace(/-/g, "_") || "";
   const [filters, setFilters] = useState<Record<string, unknown>>({});
   const [view, setView] = useState<"table" | "chart">("table");
   const [page, setPage] = useState(1);
