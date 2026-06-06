@@ -11,6 +11,7 @@ import DrillDownModal from "@/components/reports/DrillDownModal";
 import ActiveFilterBadges from "@/components/reports/ActiveFilterBadges";
 import ViewSwitcher from "@/components/reports/ViewSwitcher";
 import ReportChart from "@/components/reports/ReportChart";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface ColumnDef {
   key: string;
@@ -114,6 +115,8 @@ export default function ReportPage() {
     },
   );
 
+  const isMobile = useIsMobile();
+
   const handleDrillDown = (row: Record<string, unknown>, _columnKey: string) => {
     const accountId = (row.account_id as string) || (row.id as string);
     const periodId = filters.period_to as string;
@@ -164,6 +167,23 @@ export default function ReportPage() {
       return (
         <div className="rounded-lg border border-dashed border-secondary-300 p-12 text-center text-secondary-500">
           Select period range and click "Apply Filters" to generate the report.
+        </div>
+      );
+    }
+
+    if (isMobile) {
+      return (
+        <div className="space-y-4 p-4">
+          <div className="border-b border-secondary-200 pb-3">
+            <h2 className="text-lg font-bold text-secondary-900">{reportDef?.name || "Report"}</h2>
+            <p className="text-xs text-secondary-400">
+              Generated: {new Date(data.generated_at).toLocaleString()} &mdash;{" "}
+              {data.total_rows} rows
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <ExportButtons reportCode={reportCode || ""} filters={filters} />
+          </div>
         </div>
       );
     }
