@@ -12,7 +12,7 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
   const handleExport = async (format: string) => {
     setExporting(format);
     try {
-      const resp = await api.post(`/api/v1/financial/reports/${reportCode}/export/`, {
+      const resp = await api.post(`/financial/reports/${reportCode}/export/`, {
         format,
         params: filters,
       });
@@ -20,7 +20,7 @@ export default function ExportButtons({ reportCode, filters }: ExportButtonsProp
 
       // Poll for completion
       const poll = setInterval(async () => {
-        const statusResp = await api.get(`/api/v1/financial/exports/${export_id}/`);
+        const statusResp = await api.get(`/financial/exports/${export_id}/`);
         const { status, download_url } = statusResp.data;
         if (status === "ready") {
           clearInterval(poll);

@@ -37,7 +37,7 @@ export default function TrialBalancePage() {
     queryKey: ["report", "trial_balance", filters],
     queryFn: () =>
       api
-        .get("/api/v1/financial/reports/trial_balance/", { params: filters })
+        .get("/financial/reports/trial_balance/", { params: filters })
         .then((r) => r.data),
     enabled: Object.keys(filters).length > 0 && !!filters.period_from && !!filters.period_to,
   });

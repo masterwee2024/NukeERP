@@ -29,7 +29,7 @@ export default function DrillDownModal({
     queryKey: ["drill-down", reportCode, accountId, periodId],
     queryFn: () =>
       api
-        .get(`/api/v1/financial/reports/${reportCode}/drill-down/`, {
+        .get(`/financial/reports/${reportCode}/drill-down/`, {
           params: { account_id: accountId, period_id: periodId },
         })
         .then((r) => r.data),

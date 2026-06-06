@@ -30,7 +30,7 @@ export default function ReportFilters({ reportCode, onRun }: ReportFiltersProps)
     queryKey: ["report-params", reportCode],
     queryFn: () =>
       api
-        .get(`/api/v1/financial/reports/${reportCode}/parameters/`)
+        .get(`/financial/reports/${reportCode}/parameters/`)
         .then((r) => r.data),
   });
 
