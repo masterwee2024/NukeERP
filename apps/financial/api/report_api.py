@@ -9,6 +9,7 @@ from ninja.errors import HttpError
 
 from apps.core.api.auth import JWTAuth
 from apps.financial.models import ReportDefinition, ReportExport, ReportParameter
+from apps.financial.services.export_service import CONTENT_TYPES
 from apps.financial.services.report_service import ReportService, ReportServiceError
 
 logger = logging.getLogger(__name__)
@@ -249,7 +250,7 @@ def download_export(request, id: UUID):
             raise HttpError(400, "Export is not ready yet")
         return StreamingHttpResponse(
             export.file,
-            content_type="text/csv",
+            content_type=CONTENT_TYPES.get(export.format, "application/octet-stream"),
             headers={
                 "Content-Disposition": f'attachment; filename="{export.file.name}"'
             },

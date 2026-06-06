@@ -1,8 +1,9 @@
-"""Export service — CSV streaming, PDF stub."""
+"""Export service — CSV, HTML (PDF/Excel fallback)."""
 
 import csv
 import io
 import logging
+from html import escape
 
 from django.http import StreamingHttpResponse
 
@@ -10,6 +11,18 @@ from apps.financial.models import ReportExport
 from apps.financial.services.report_service import ReportService
 
 logger = logging.getLogger(__name__)
+
+CONTENT_TYPES = {
+    "csv": "text/csv",
+    "pdf": "text/html",
+    "xlsx": "application/vnd.ms-excel",
+}
+
+FILE_EXTENSIONS = {
+    "csv": "csv",
+    "pdf": "html",
+    "xlsx": "xls",
+}
 
 
 def stream_csv(report_code: str, params: dict, user) -> StreamingHttpResponse:
@@ -38,20 +51,19 @@ def stream_csv(report_code: str, params: dict, user) -> StreamingHttpResponse:
 
 
 def generate_export(export_id: str):
-    """Generate an export. Stub — sets status to 'ready' immediately.
+    """Generate an export file.
 
-    In production, this would be a Celery task. For now, CSV is synchronous
-    and PDF is a placeholder.
+    CSV → real CSV
+    PDF → HTML table (renders in browser, print-to-PDF)
+    XLSX → HTML table (Excel can open .xls HTML)
     """
 
     try:
         export = ReportExport.objects.select_related("report").get(id=export_id)
         if export.format == "csv":
             _generate_csv_export(export)
-        elif export.format == "pdf":
-            _generate_pdf_stub(export)
-        elif export.format == "xlsx":
-            _generate_xlsx_stub(export)
+        else:
+            _generate_html_export(export)
     except Exception as e:
         logger.exception("Export generation failed for %s", export_id)
         ReportExport.objects.filter(id=export_id).update(
@@ -72,7 +84,8 @@ def _generate_csv_export(export: ReportExport):
         writer.writerow(str(row.get(c["key"], "")) for c in data["columns"])
 
     content = output.getvalue().encode("utf-8-sig")
-    export.file.save(f"{export.report.code}_{export.id}.csv", ContentFile(content))
+    ext = FILE_EXTENSIONS[export.format]
+    export.file.save(f"{export.report.code}_{export.id}.{ext}", ContentFile(content))
     export.status = "ready"
     export.generated_at = None
     from django.utils import timezone
@@ -81,11 +94,53 @@ def _generate_csv_export(export: ReportExport):
     export.save(update_fields=["status", "generated_at", "file", "updated_at"])
 
 
-def _generate_pdf_stub(export: ReportExport):
-    """Placeholder — generates CSV as fallback until PDF engine is ready."""
-    _generate_csv_export(export)
+def _generate_html_export(export: ReportExport):
+    """Generate an HTML table export (fallback for PDF/XLSX stubs)."""
+    from django.core.files.base import ContentFile
 
+    data = ReportService().run(export.report.code, export.params, export.company_id)
+    cols = data["columns"]
 
-def _generate_xlsx_stub(export: ReportExport):
-    """Placeholder — generates CSV as fallback until Excel engine is ready."""
-    _generate_csv_export(export)
+    html_parts = ["<!DOCTYPE html><html><head><meta charset='utf-8'>"]
+    html_parts.append(f"<title>{escape(export.report.name)}</title>")
+    html_parts.append("<style>")
+    html_parts.append("body{font-family:sans-serif;margin:2rem}")
+    html_parts.append("h1{font-size:1.25rem;color:#333}")
+    html_parts.append("table{border-collapse:collapse;width:100%;margin-top:1rem}")
+    html_parts.append(
+        "th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:0.875rem}"
+    )
+    html_parts.append("th{background:#f5f5f5;font-weight:600}")
+    html_parts.append("tr:nth-child(even){background:#fafafa}")
+    html_parts.append(".footer{margin-top:1rem;font-size:0.75rem;color:#999}")
+    html_parts.append("</style></head><body>")
+    html_parts.append(f"<h1>{escape(export.report.name)}</h1>")
+    html_parts.append(
+        f"<p style='color:#666;font-size:0.875rem'>"
+        f"Generated: {export.generated_at.strftime('%Y-%m-%d %H:%M') if export.generated_at else 'N/A'} &mdash; "
+        f"{len(data['rows'])} rows</p>"
+    )
+    html_parts.append("<table><thead><tr>")
+    for c in cols:
+        html_parts.append(f"<th>{escape(c['label'])}</th>")
+    html_parts.append("</tr></thead><tbody>")
+    for row in data["rows"]:
+        html_parts.append("<tr>")
+        for c in cols:
+            val = row.get(c["key"], "")
+            html_parts.append(f"<td>{escape(str(val))}</td>")
+        html_parts.append("</tr>")
+    html_parts.append("</tbody></table>")
+    html_parts.append(
+        "<p class='footer'>End of Report &mdash; PDF engine pending, HTML preview</p>"
+    )
+    html_parts.append("</body></html>")
+
+    content = "".join(html_parts).encode("utf-8")
+    ext = FILE_EXTENSIONS[export.format]
+    export.file.save(f"{export.report.code}_{export.id}.{ext}", ContentFile(content))
+    export.status = "ready"
+    from django.utils import timezone
+
+    export.generated_at = timezone.now()
+    export.save(update_fields=["status", "generated_at", "file", "updated_at"])
