@@ -24,17 +24,34 @@ All reports share the same filter UI, the same engine service, the same export f
 ## Architecture
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                    Report Engine                        │
-├────────────┬────────────┬────────────┬──────────────────┤
-│  Registry  │  Compute   │  Format    │  Output          │
-│  (DB)      │  SQL/Python│  Columns   │  Screen/CSV/PDF  │
-├────────────┼────────────┼────────────┼──────────────────┤
-│ Definition │ ORM/SQL    │ Types      │ React Table      │
-│ Parameters │ Raw SQL    │ Decimals   │ Streaming CSV    │
-│ Presets    │ Service fn │ Currencies │ PDF (WeasyPrint) │
-│ Cache keys │ Cache      │ Dates      │ Excel (openpyxl) │
-└────────────┴────────────┴────────────┴──────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                       ReportPage (Generic)                  │
+│              Route: /app/financial/reports/:reportCode      │
+├────────────────────────┬────────────────────────────────────┤
+│   Left Panel (30%)     │   Right Panel (70%)               │
+│   Drag-resizable       │                                    │
+├────────────────────────┼────────────────────────────────────┤
+│  ReportFilters         │  ┌─ Toolbar ────────────────────┐ │
+│  ┌──────────────────┐  │  │ [Table] [Chart]  [Export ▼]↻│ │
+│  │ Period From      │  │  └─────────────────────────────┘ │
+│  │ Period To        │  │  ┌─ Filter Badges ────────────┐ │ │
+│  │ Accounts (tree)  │  │  │[Period: Jan ×] [Clear All] │ │ │
+│  │ Show Zero        │  │  └─────────────────────────────┘ │ │
+│  │ [Apply Filters]  │  │  ┌─ Summary Cards ────────────┐ │ │
+│  │ [+ Save Preset]  │  │  │Debit   Credit   Balance    │ │ │
+│  └──────────────────┘  │  └─────────────────────────────┘ │ │
+│                         │  ┌─ Table / Chart ─────────────┐ │ │
+│                         │  │ Columns (resizable)         │ │ │
+│                         │  │ ▸ Group header (collapsible)│ │ │
+│                         │  │   row data...               │ │ │
+│                         │  │ ▸ Group header              │ │ │
+│                         │  │ Subtotal                    │ │ │
+│                         │  │ ======= Grand Total ======= │ │ │
+│                         │  │ < Page 1 of 17 >  1-100/1642│ │ │
+│                         │  └─────────────────────────────┘ │ │
+├────────────────────────┴────────────────────────────────────┤
+│  DrillDownModal (on cell click)                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Report Registry (Database)
@@ -449,12 +466,16 @@ class GroupTotal(Schema):
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
+| `ReportPage` | `pages/reports/ReportPage.tsx` | **Generic** — serves ALL reports via `:reportCode` URL param |
 | `ReportFilters` | `components/reports/ReportFilters.tsx` | Dynamic filter form from registry |
 | `AccountTreeSelect` | `components/reports/AccountTreeSelect.tsx` | Hierarchical COA picker with checkboxes |
 | `PeriodRangeSelect` | `components/reports/PeriodRangeSelect.tsx` | Period from/to picker |
-| `ReportTable` | `components/reports/ReportTable.tsx` | Virtual-scroll table with group headers |
+| `ReportTable` | `components/reports/ReportTable.tsx` | Table with sticky header, collapsible groups, column resize, pagination |
+| `ReportChart` | `components/reports/ReportChart.tsx` | Recharts stacked bar chart by group |
+| `ActiveFilterBadges` | `components/reports/ActiveFilterBadges.tsx` | Removable chips showing active filters |
+| `ViewSwitcher` | `components/reports/ViewSwitcher.tsx` | Table/Chart toggle button group |
 | `DrillDownModal` | `components/reports/DrillDownModal.tsx` | Modal showing drill-down detail |
-| `ExportButtons` | `components/reports/ExportButtons.tsx` | CSV/PDF/Excel export trigger buttons |
+| `ExportButtons` | `components/reports/ExportButtons.tsx` | CSV/PDF/Excel export with inline status |
 | `FilterPresetManager` | `components/reports/FilterPresetManager.tsx` | Save/load/delete filter presets |
 
 ## Output Formats
@@ -545,22 +566,66 @@ def drill_down_trial_balance(account_id: UUID, period_id: UUID, company_id: UUID
     ], total
 ```
 
+## URL Convention
+
+| Format | Example | Where |
+|--------|---------|-------|
+| Dashes | `financial/reports/trial-balance` | URL path and sidebar menu `url` |
+| Underscores | `trial_balance` | `ReportDefinition.code` in database |
+
+The `ReportPage` normalizes automatically: `const reportCode = rawCode?.replace(/-/g, "_") || ""`
+
+## ReportTable Props
+
+```tsx
+interface ReportTableProps {
+  columns: ColumnDef[];
+  rows: Record<string, unknown>[];
+  groupField?: string;
+  summary?: Record<string, number> | null;
+  groupTotals?: Array<Record<string, unknown>>;
+  onDrillDown?: (row: Record<string, unknown>, columnKey: string) => void;
+  page?: number;
+  pageSize?: number;
+  totalRows?: number;
+  onPageChange?: (page: number) => void;
+}
+```
+
+## Report Engine Service — Pagination
+
+The `ReportService.run()` method accepts `page` and `page_size` params and applies them to the query:
+
+- **SQL reports**: wraps the SQL template in a subquery with `LIMIT %(_limit)s OFFSET %(_offset)s`. Also runs a `SELECT COUNT(*)` on the same template for total rows.
+- **Python reports**: slices the returned list: `data[(page-1)*page_size : page*page_size]`
+
+The result includes `total_rows`, `page`, and `page_size` fields for frontend pagination controls.
+
 ## When to Build a New Report
+
+### Workflow (no frontend code needed)
+
+1. Write SQL template or Python service function
+2. Add to `seed_reports.py`: `ReportDefinition` + `ReportParameter` records
+3. Add sidebar menu entry to `seed_menus.py`
+4. Run `uv run python manage.py seed_reports`
+5. Run `uv run python manage.py seed_menus`
+6. Run `uv run python manage.py validate_menus`
 
 ### Checklist
 
-- [ ] Register `ReportDefinition` in seed data (`apps/financial/management/commands/seed_reports.py`)
+- [ ] Register `ReportDefinition` in seed data (`apps/financial/management/commands/seed_reports.py`) — use underscores in code
 - [ ] Add `ReportParameter` records for every filter the report needs
 - [ ] If SQL: write parametrized SQL template, test with varying params
 - [ ] If Python: write service function in `apps/{module}/services/{report_name}_service.py`
 - [ ] Add data migration if new fields/models are needed
-- [ ] Add frontend page: `<ReportFilters>` + `<ReportTable>` + `<ExportButtons>`
-- [ ] Add route in `App.tsx`: `path="/app/{module}/reports/{slug}"`
-- [ ] Register sidebar menu (slug, url, icon) in `seed_menus.py`
+- [ ] **No frontend page needed** — `ReportPage` handles all reports generically
+- [ ] Add sidebar menu in `seed_menus.py` — use dashes in URL (e.g. `/app/financial/reports/trial-balance`)
+- [ ] Add icon to `SidebarItem.tsx` iconMap if new icon
 - [ ] Add service-level unit tests (backend)
 - [ ] Add API integration tests (auth, company scoping, pagination)
-- [ ] Add frontend component tests (filter rendering, export trigger)
-- [ ] Add E2E test (full flow: filter → view → export)
+- [ ] Add drill-down support if applicable
+- [ ] Run `validate_menus` after seeding
 
 ### Seed Data Pattern
 
@@ -638,35 +703,52 @@ ORDER BY a.code
 - **Grand total**: Sum of all numeric columns — must equal zero (debits = credits)
 - **Zero balance filtering**: If `show_zero_balances=false`, exclude rows where all balance columns are zero
 
-### Route & Page
+### Route — One Route for All Reports
 
 ```tsx
-// frontend/src/App.tsx
-<Route path="/app/financial/reports/trial-balance"
-       element={<TrialBalancePage />} />
-
-// frontend/src/pages/financial/TrialBalancePage.tsx
-export default function TrialBalancePage() {
-  const handleRun = (filters) => { queryClient.invalidateQueries(['report', 'trial_balance', filters]) }
-  const { data, isLoading } = useQuery(['report', 'trial_balance', filters], () =>
-    api.get('/api/v1/financial/reports/trial_balance/', { params: filters }))
-
-  return (
-    <div className="space-y-4">
-      <ReportFilters reportCode="trial_balance" onRun={handleRun} />
-      {isLoading ? <Spinner /> : (
-        <>
-          <ReportTable columns={data.columns} rows={data.rows}
-                       groupField="account_type"
-                       summary={data.summary}
-                       groupTotals={data.group_totals} />
-          <ExportButtons reportCode="trial_balance" filters={filters} />
-        </>
-      )}
-    </div>
-  )
-}
+// frontend/src/App.tsx — single route serves every report
+<Route path="financial/reports/:reportCode" element={<ReportPage />} />
 ```
+
+No per-report pages needed. The `reportCode` URL parameter is normalized (dash → underscore) and used for all API calls.
+
+### Page Layout
+
+Every report page renders in `FormPageLayout` with a 30/70 resizable split:
+
+```
+Desktop (≥1280px):            Tablet/Mobile:
++--------+---------------+    +------------------+
+|Filters | Report        |    | Filters           |
+|(30%)   | Toolbar       |    | (collapsible)     |
+|        | Badges        |    +------------------+
+|        | Summary Cards |    | Report            |
+|        | Table/Chart   |    | (full width)      |
+|        | Pagination    |    +------------------+
++--------+---------------+
+```
+
+**Toolbar** (right panel top):
+```
+[Table] [Chart]          [Export CSV] [Export PDF] [↻ Refresh]
+```
+
+**Filter Badges** (below toolbar):
+Shows each active filter as a removable chip. Click × to clear that filter and auto-refresh.
+
+**Summary Cards** (below badges):
+Three colored cards: Total Debit, Total Credit, Net Balance. Balance card is green when zero, red otherwise.
+
+**Table Features:**
+- Sticky column headers
+- Collapsible group rows (groups start collapsed, click to expand)
+- Column resize via drag handle on column border
+- Pagination: "← Page 1 of 17 →  Showing 1-100 of 1642"
+- Currency formatting with locale "en-MY"
+- Drill-down on cell click → opens modal with detail entries
+
+**Chart Replacement:**
+When ViewSwitcher is set to "Chart", the table is replaced with a Recharts stacked bar chart grouped by `groupField` (e.g. account_type). Each bar shows debit (blue) and credit (amber) segments.
 
 ## P&L (T026) — Extension Pattern
 
@@ -739,12 +821,13 @@ operating AS (
 
 | Convention | Example |
 |-----------|---------|
-| Report code | `trial_balance`, `profit_and_loss` |
+| Report code (DB) | `trial_balance`, `profit_and_loss` (underscores) |
+| Report URL (sidebar) | `/app/financial/reports/trial-balance` (dashes) |
 | Report parameter key | `date_from`, `account_ids`, `show_zero_balances` |
 | Service file | `apps/financial/services/report_service.py` |
 | Service function | `run_trial_balance(params, company_id)` |
 | API file | `apps/financial/api/report_api.py` |
-| Frontend page | `pages/financial/TrialBalancePage.tsx` |
+| Frontend page | `pages/reports/ReportPage.tsx` (generic — one for all) |
 | Frontend component | `components/reports/ReportTable.tsx` |
 
 ### Database

@@ -1,5 +1,5 @@
 ---
-description: Specialist in building reports for pyERP. Handles backend (pre-aggregation models, report registry DB, engine service, API, seed data), frontend (shared filter/report components, report pages, routes, sidebar), and report-specific tests. Use when the user says "build report for", "implement T025", "create trial balance", "add report".
+description: Specialist in building reports for pyERP. Handles backend (pre-aggregation models, report registry DB, engine service, API, seed data), seed data + sidebar only for frontend (generic ReportPage handles all reports). Use when the user says "build report for", "implement TXXX", "create trial balance", "add report".
 mode: subagent
 permission:
   bash: allow
@@ -438,73 +438,22 @@ uv run python manage.py seed_reports   # seed report definitions
 
 Verify: `npm run build` from `frontend/` succeeds.
 
-### Phase 8 — Report Page (Frontend)
+### Phase 8 — No Frontend Page Needed
 
-**Page component** (`frontend/src/pages/financial/TrialBalancePage.tsx`):
+**CRITICAL DESIGN CHANGE (T025a):** There is a single generic `ReportPage` at route `financial/reports/:reportCode` that serves ALL reports. Do NOT create per-report page components or routes.
 
-```tsx
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import ReportFilters from '@/components/reports/ReportFilters'
-import ReportTable from '@/components/reports/ReportTable'
-import ExportButtons from '@/components/reports/ExportButtons'
-
-export default function TrialBalancePage() {
-  const [filters, setFilters] = useState({})
-  const { data, isLoading } = useQuery(
-    ['report', 'trial_balance', filters],
-    () => api.get('/api/v1/financial/reports/trial_balance/', { params: filters }),
-    { enabled: Object.keys(filters).length > 0 }
-  )
-
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Trial Balance</h1>
-      <ReportFilters reportCode="trial_balance" onRun={setFilters} />
-      {isLoading ? <Spinner /> : data && (
-        <>
-          <ReportTable
-            columns={data.columns}
-            rows={data.rows}
-            groupField={data.columns.find(c => c.key === data.group_totals?.[0]?.group_key)?.key}
-            summary={data.summary}
-            groupTotals={data.group_totals}
-          />
-          <ExportButtons reportCode="trial_balance" filters={filters} />
-        </>
-      )}
-    </div>
-  )
-}
-```
-
-**Route registration** in `frontend/src/App.tsx`:
-
-```tsx
-const TrialBalancePage = lazy(() => import('@/pages/financial/TrialBalancePage'))
-// ...
-<Route path="/app/financial/reports/trial-balance" element={<TrialBalancePage />} />
-```
+For a new report, only seed data + sidebar menu is needed:
 
 **Sidebar menu registration** in `apps/core/management/commands/seed_menus.py`:
+- Use **dashes** in the URL (e.g. `/app/financial/reports/trial-balance`)
+- The `ReportPage` normalizes dashes to underscores when calling the API
 
 ```python
-Menu.objects.update_or_create(
-    slug="financial-reports",
-    defaults={
-        "name": "Reports",
-        "icon": "FileBarChart",
-        "url": "#",
-        "parent": financial_menu,
-        "sort_order": 100,
-        "module": "financial",
-    },
-)
 Menu.objects.update_or_create(
     slug="trial-balance",
     defaults={
         "name": "Trial Balance",
-        "icon": "FileText",
+        "icon": "FileText",  # must exist in SidebarItem.tsx iconMap
         "url": "/app/financial/reports/trial-balance",
         "parent": reports_menu,
         "sort_order": 10,
@@ -513,7 +462,7 @@ Menu.objects.update_or_create(
 )
 ```
 
-Also add `FileBarChart` + `FileText` SVG paths to both `SidebarItem.tsx` and `SidebarGroup.tsx` iconMap.
+If using a new icon name, add the SVG path to both `SidebarItem.tsx` and `SidebarGroup.tsx` iconMap.
 
 **Frontend tests** (`frontend/src/tests/ReportFilters.test.tsx`):
 - Renders filter form from parameter definitions
@@ -549,17 +498,9 @@ When done, report:
 - `apps/financial/management/commands/seed_reports.py` — report definitions
 - `pyerp/api.py` — register router
 
-### Frontend
-- `frontend/src/components/reports/ReportFilters.tsx`
-- `frontend/src/components/reports/ReportTable.tsx`
-- `frontend/src/components/reports/DrillDownModal.tsx`
-- `frontend/src/components/reports/ExportButtons.tsx`
-- `frontend/src/components/reports/AccountTreeSelect.tsx`
-- `frontend/src/components/reports/PeriodRangeSelect.tsx`
-- `frontend/src/components/reports/FilterPresetManager.tsx`
-- `frontend/src/pages/financial/TrialBalancePage.tsx`
-- `frontend/src/App.tsx` — route added
-- `apps/core/management/commands/seed_menus.py` — sidebar menu
+### Frontend (seed data only — generic ReportPage handles rendering)
+- `apps/core/management/commands/seed_menus.py` — sidebar menu entry (dash URL)
+- Optional: add new icon SVG to `SidebarItem.tsx` + `SidebarGroup.tsx` if needed
 
 ### Migrations
 - {migration_file} — AccountPeriodBalance, ReportDefinition, ReportParameter, ReportExport
