@@ -207,9 +207,7 @@ def create_export(request, code: str, payload: ExportIn):
 
     export.refresh_from_db()
     download_url = (
-        f"/api/v1/financial/exports/{export.id}/download"
-        if export.status == "ready"
-        else None
+        f"/financial/exports/{export.id}/download" if export.status == "ready" else None
     )
 
     return {
@@ -226,9 +224,7 @@ def get_export_status(request, id: UUID):
     try:
         export = ReportExport.objects.get(id=id, company_id=company_id)
         download_url = (
-            f"/api/v1/financial/exports/{id}/download"
-            if export.status == "ready"
-            else None
+            f"/financial/exports/{id}/download" if export.status == "ready" else None
         )
         generated_at = export.generated_at.isoformat() if export.generated_at else None
         return {
