@@ -73,6 +73,8 @@ function createNode(nodeType: string, x: number, y: number): Node {
   };
 }
 
+const nodeTypes = {};
+
 export default function WorkflowDesignerPage() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -201,8 +203,6 @@ export default function WorkflowDesignerPage() {
       setSaving(false);
     }
   };
-
-  const nodeTypes = {};
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
