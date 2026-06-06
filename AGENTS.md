@@ -17,6 +17,7 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 uv run python manage.py seed_menus   # seed dynamic menu tree
 uv run python manage.py seed_page_configs   # seed page configuration for all modules
+uv run python manage.py validate_menus      # validate menu URLs, icons, routes (run after seed_menus)
 uv run pytest                      # all backend tests
 uv run pytest tests/backend/ap/test_supplier_invoice.py -k "test_post"  # single test
 uv run ruff check .               # lint
@@ -430,7 +431,8 @@ All test execution is delegated to the **test-runner agent** (`.opencode/agent/t
 | 6 | TypeScript | `npx tsc --noEmit` |
 | 7 | Frontend tests | `npm run test:run` |
 | 8 | Build | `npm run build` |
-| 9 | Django check | `uv run python manage.py check` |
+| 9 | Menu validation | `uv run python manage.py validate_menus` |
+| 10 | Django check | `uv run python manage.py check` |
 
 **Do NOT run tests manually** — always use the agent. It runs faster, reports consistently, and catches issues across all layers.
 
