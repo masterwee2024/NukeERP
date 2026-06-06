@@ -14,6 +14,24 @@ import {
 import "reactflow/dist/style.css";
 import NodePalette from "@/components/workflow/NodePalette";
 
+const DOCUMENT_TYPE_OPTIONS = [
+  { value: "", label: "-- Select document type --" },
+  { value: "financial.JournalEntry", label: "Journal Entry" },
+  { value: "scm.PurchaseOrder", label: "Purchase Order" },
+  { value: "scm.SalesOrder", label: "Sales Order" },
+  { value: "scm.GoodsReceiptNote", label: "Goods Receipt Note" },
+  { value: "scm.DeliveryOrder", label: "Delivery Order" },
+  { value: "crm.Quotation", label: "Quotation" },
+  { value: "crm.CustomerInvoice", label: "Customer Invoice" },
+  { value: "hrm.LeaveRequest", label: "Leave Request" },
+  { value: "hrm.Claim", label: "Claim" },
+  { value: "hrm.ExpenseReport", label: "Expense Report" },
+  { value: "mrp.WorkOrder", label: "Work Order" },
+  { value: "assets.AssetDisposal", label: "Asset Disposal" },
+  { value: "treasury.Payment", label: "Payment" },
+  { value: "treasury.Receipt", label: "Receipt" },
+];
+
 const initialNodes: Node[] = [
   {
     id: "start-1",
@@ -160,18 +178,21 @@ export default function WorkflowDesignerPage() {
             className="rounded border border-secondary-300 px-2 py-1 text-sm"
           >
             <option value="">Module</option>
-            <option value="procurement">Procurement</option>
             <option value="financial">Financial</option>
-            <option value="hrm">HRM</option>
+            <option value="scm">Supply Chain</option>
             <option value="crm">CRM</option>
-            <option value="scm">SCM</option>
+            <option value="mrp">MRP</option>
+            <option value="hrm">HRM</option>
           </select>
-          <input
+          <select
             value={docType}
             onChange={(e) => setDocType(e.target.value)}
-            className="rounded border border-secondary-300 px-2 py-1 text-sm focus:border-primary-500 focus:outline-none"
-            placeholder="Document type (e.g. PurchaseOrder)"
-          />
+            className="rounded border border-secondary-300 px-2 py-1 text-sm"
+          >
+            {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
           <button
             onClick={handleSave}
             disabled={saving}
