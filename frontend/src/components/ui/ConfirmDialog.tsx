@@ -78,10 +78,21 @@ export function useAction() {
 
       return result as TReturn;
     } catch (err: unknown) {
-      // 4. Error dialog
+      // 4. Error dialog — extract backend detail from axios error
+      let message = "Please contact system administrator.";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as { response?: { data?: Record<string, unknown> } };
+        const detail = axiosErr.response?.data?.detail;
+        if (typeof detail === "string") {
+          message = detail;
+        }
+      }
       await confirm({
         title: cfg.errorTitle ?? "Error",
-        message: err instanceof Error ? err.message : "Please contact system administrator.",
+        message,
         variant: "danger",
         confirmText: "OK",
       });
