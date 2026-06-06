@@ -755,6 +755,23 @@ Three colored cards: Total Debit, Total Credit, Net Balance. Balance card is gre
 **Chart Replacement:**
 When ViewSwitcher is set to "Chart", the table is replaced with a Recharts stacked bar chart grouped by `groupField` (e.g. account_type). Each bar shows debit (blue) and credit (amber) segments.
 
+**Report Header (top of report panel):**
+```
+Trial Balance
+Period: January 2026 — March 2026
+Generated: 6/6/2026, 7:15 AM — 164 rows
+```
+- Report name from `ReportDefinition`
+- Period range resolved from UUIDs via cached periods API
+- Generated timestamp and row count
+
+**Report Footer (bottom of report panel):**
+```
+────────────────────────────────────────
+End of Report — 164 rows
+Generated: 6/6/2026, 7:15 AM
+```
+
 ## P&L (T026) — Extension Pattern
 
 Reuses the same TB engine with a WHERE filter:
