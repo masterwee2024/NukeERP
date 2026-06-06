@@ -77,12 +77,14 @@ export default function WorkflowDesignerPage() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [name, setName] = useState("New Workflow");
   const [module, setModule] = useState("");
   const [docType, setDocType] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null;
 
   const { data: roles } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ["roles"],
@@ -154,11 +156,11 @@ export default function WorkflowDesignerPage() {
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
+    setSelectedNodeId(node.id);
   }, []);
 
   const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
+    setSelectedNodeId(null);
   }, []);
 
   const handleSave = async () => {
@@ -293,7 +295,6 @@ export default function WorkflowDesignerPage() {
                   setNodes((nds) =>
                     nds.map((n) => (n.id === selectedNode.id ? { ...n, data: { ...n.data, label: e.target.value } } : n)),
                   );
-                  setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } });
                 }}
                 className="mt-1 w-full rounded border border-secondary-300 px-2 py-1 text-sm"
               />
