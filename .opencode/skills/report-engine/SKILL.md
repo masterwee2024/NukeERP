@@ -736,6 +736,11 @@ Desktop (≥1280px):            Tablet/Mobile:
 **Filter Badges** (below toolbar):
 Shows each active filter as a removable chip. Click × to clear that filter and auto-refresh.
 
+**CRITICAL RULE:** Filter badges must ALWAYS display human-readable values, never raw UUIDs/IDs.
+- Period filters resolve UUID → period name via cached API data
+- Account filters show count ("3 selected") rather than UUID list
+- Boolean filters show "Yes"/"No" rather than raw values
+
 **Summary Cards** (below badges):
 Three colored cards: Total Debit, Total Credit, Net Balance. Balance card is green when zero, red otherwise.
 
@@ -816,6 +821,21 @@ operating AS (
 | **Total** | | **10d** |
 
 ## Conventions
+
+### Display Values — Never Show Raw IDs
+
+When rendering filter values, parameter options, or any reference data:
+
+| Filter Type | Display | Implementation |
+|------------|---------|---------------|
+| `period` / `period_range` | Period name (e.g. "January 2026") | Resolve UUID via cached periods API |
+| `account_tree` / `account_multi` | Count (e.g. "3 selected") | `Array.isArray(v) ? \`${v.length} selected\`` |
+| `customer_multi` / `vendor_multi` | Count (e.g. "2 selected") | Same as accounts |
+| `checkbox` | "Yes" / "No" | Ternary check |
+| `select` | Option label | Must have `options_source` with label/value pairs |
+| Raw UUID | NEVER show | Always resolve to a display name |
+
+This applies to **filter badges**, **export filenames**, **page titles**, and **any user-facing text**.
 
 ### Naming
 
